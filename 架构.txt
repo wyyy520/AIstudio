@@ -1,0 +1,121 @@
+AIStudio/
+│
+├── Frontend/                     # Vue3 + TypeScript + Tauri
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── workflow/
+│   │   ├── chat/
+│   │   ├── plugin/
+│   │   ├── project/
+│   │   ├── router/
+│   │   ├── store/
+│   │   ├── api/
+│   │   ├── utils/
+│   │   ├── hooks/
+│   │   └── types/
+│   └── package.json
+│
+├── Backend/                      # Go Backend
+│   ├── cmd/
+│   ├── internal/
+│   │   ├── api/
+│   │   ├── workflow/
+│   │   ├── task/
+│   │   ├── agent/
+│   │   ├── plugin/
+│   │   ├── environment/
+│   │   ├── project/
+│   │   ├── logger/
+│   │   ├── mcp/
+│   │   ├── config/
+│   │   ├── common/
+│   │   └── database/
+│   ├── pkg/
+│   └── go.mod
+│
+├── Engine/                       # Python执行引擎
+│   ├── vision/
+│   ├── nlp/
+│   ├── speech/
+│   ├── timeseries/
+│   ├── deploy/
+│   ├── runtime/
+│   ├── sdk/
+│   └── requirements.txt
+│
+├── Plugins/
+│   ├── Vision/
+│   │   ├── YOLO/
+│   │   ├── RT-DETR/
+│   │   ├── SAM/
+│   │   └── OCR/
+│   │
+│   ├── NLP/
+│   │   ├── Transformer/
+│   │   └── LLM/
+│   │
+│   ├── TimeSeries/
+│   │   └── LSTM/
+│   │
+│   ├── Logic/
+│   │   ├── If/
+│   │   ├── Else/
+│   │   ├── Switch/
+│   │   ├── Loop/
+│   │   └── Retry/
+│   │
+│   ├── System/
+│   │   ├── Python/
+│   │   ├── Git/
+│   │   ├── CUDA/
+│   │   ├── Download/
+│   │   ├── Terminal/
+│   │   └── Environment/
+│   │
+│   ├── Simulation/
+│   │   ├── SUMO/
+│   │   ├── MATLAB/
+│   │   └── VISSIM/
+│   │
+│   ├── MCP/
+│   │
+│   └── SDK/
+│
+├── Runtime/                      # 运行时文件（可删除）
+│   ├── cache/
+│   ├── logs/
+│   ├── workspace/
+│   ├── temp/
+│   ├── downloads/
+│   └── tasks/
+│
+├── Storage/                      # 用户数据
+│   ├── datasets/
+│   ├── models/
+│   ├── projects/
+│   ├── settings/
+│   └── users/
+│
+├── Docs/
+│   ├── architecture/
+│   ├── api/
+│   ├── plugin-sdk/
+│   ├── workflow-sdk/
+│   ├── mcp/
+│   ├── roadmap/
+│   └── prd/
+│
+├── Scripts/
+│   ├── build/
+│   ├── release/
+│   ├── installer/
+│   ├── ci/
+│   └── deploy/
+│
+├── .gitignore
+├── README.md
+├── LICENSE
+└── CHANGELOG.md

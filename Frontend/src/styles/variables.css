@@ -1,0 +1,147 @@
+/* ============================================================
+ * AIStudio Design System — CSS Variables
+ * 引用规范: Docs/UI/design-system.md
+ * ============================================================ */
+
+:root {
+  /* ===== 基础色板 (深色主题 — 默认) ===== */
+  --bg-primary: #0f0f11;
+  --bg-secondary: #16161a;
+  --bg-tertiary: #1e1e24;
+  --bg-hover: #27272f;
+  --bg-active: #2d2d38;
+
+  --border-subtle: #2a2a33;
+  --border-default: #363641;
+  --border-strong: #42424f;
+
+  /* ===== 文本色 ===== */
+  --text-primary: #e4e4e7;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --text-disabled: #52525b;
+  --text-inverse: #18181b;
+
+  /* ===== 功能色 — 状态 ===== */
+  --success: #22c55e;
+  --success-bg: #166534;
+  --warning: #f59e0b;
+  --warning-bg: #78350f;
+  --error: #ef4444;
+  --error-bg: #7f1d1d;
+  --info: #3b82f6;
+  --info-bg: #1e40af;
+  --neutral: #6b7280;
+
+  /* ===== 功能色 — 品牌 ===== */
+  --primary: #8b5cf6;
+  --primary-hover: #a78bfa;
+  --primary-active: #7c3aed;
+  --primary-bg: rgba(139, 92, 246, 0.1);
+
+  /* ===== 节点类型颜色 ===== */
+  --vision: #ec4899;
+  --nlp: #3b82f6;
+  --timeseries: #10b981;
+  --logic: #f59e0b;
+  --system: #6b7280;
+  --mcp: #8b5cf6;
+  --simulation: #06b6d4;
+  --agent: #ef4444;
+
+  /* ===== 字体 ===== */
+  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-family-mono: "Fira Code", "JetBrains Mono", "Consolas", "Monaco",
+    "Courier New", monospace;
+
+  /* ===== 字号 ===== */
+  --text-h1: 24px;
+  --text-h2: 20px;
+  --text-h3: 16px;
+  --text-body: 14px;
+  --text-body-sm: 13px;
+  --text-caption: 12px;
+  --text-code: 13px;
+
+  /* ===== 行高 ===== */
+  --leading-h1: 32px;
+  --leading-h2: 28px;
+  --leading-h3: 24px;
+  --leading-body: 20px;
+  --leading-body-sm: 18px;
+  --leading-caption: 16px;
+  --leading-code: 18px;
+
+  /* ===== 字重 ===== */
+  --font-regular: 400;
+  --font-semibold: 600;
+
+  /* ===== 间距 (4px 栅格) ===== */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+
+  /* ===== 圆角 ===== */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+
+  /* ===== 阴影 (深色主题) ===== */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px 0 rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px 0 rgba(0, 0, 0, 0.6);
+  --shadow-node: 0 4px 16px 0 rgba(0, 0, 0, 0.5);
+
+  /* ===== 动画 ===== */
+  --transition-fast: 150ms ease-out;
+  --transition-normal: 200ms ease-in-out;
+  --transition-slow: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-page: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ===== 布局尺寸 ===== */
+  --sidebar-width: 240px;
+  --statusbar-height: 28px;
+  --titlebar-height: 48px;
+
+  /* ===== 侧边栏 ===== */
+  --scrollbar-width: 6px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #363641;
+  --scrollbar-thumb-hover: #42424f;
+}
+
+/* ===== 浅色主题 ===== */
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #fafafa;
+  --bg-tertiary: #f4f4f5;
+  --bg-hover: #e4e4e7;
+  --bg-active: #d4d4d8;
+
+  --border-subtle: #e4e4e7;
+  --border-default: #d4d4d8;
+  --border-strong: #a1a1aa;
+
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-tertiary: #71717a;
+  --text-disabled: #a1a1aa;
+  --text-inverse: #f4f4f5;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px 0 rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 48px 0 rgba(0, 0, 0, 0.15);
+  --shadow-node: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
+
+  --scrollbar-thumb: #d4d4d8;
+  --scrollbar-thumb-hover: #a1a1aa;
+}

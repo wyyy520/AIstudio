@@ -1,0 +1,69 @@
+Docs/
+│
+├── PRD/                    # 产品需求文档
+│   ├── overview.md
+│   ├── roadmap.md
+│   └── feature-list.md
+│
+├── Architecture/           # ⭐ 系统架构（最重要）
+│   ├── system.md
+│   ├── frontend.md
+│   ├── backend.md
+│   ├── engine.md
+│   ├── runtime.md
+│   ├── storage.md
+│   ├── plugin.md
+│   ├── agent.md
+│   └── environment.md
+│
+├── Workflow/               # ⭐ 工作流规范（最重要）
+│   ├── workflow.md
+│   ├── node.md
+│   ├── edge.md
+│   ├── graph.md
+│   ├── executor.md
+│   ├── json.md
+│   └── validation.md
+│
+├── UI/
+│   ├── design-system.md
+│   ├── dashboard.md
+│   ├── workflow.md
+│   ├── plugin-store.md
+│   ├── project.md
+│   ├── ai-chat.md
+│   ├── logs.md
+│   ├── settings.md
+│   └── components.md
+│
+├── Plugin/
+│   ├── sdk.md
+│   ├── lifecycle.md
+│   ├── install.md
+│   ├── manifest.md
+│   └── api.md
+│
+├── Agent/
+│   ├── planner.md
+│   ├── debugger.md
+│   ├── repairer.md
+│   ├── prompt.md
+│   └── tool-call.md
+│
+├── MCP/
+│   ├── overview.md
+│   ├── protocol.md
+│   └── tools.md
+│
+├── API/
+│   ├── backend.md
+│   ├── websocket.md
+│   └── plugin.md
+│
+├── Database/
+│   ├── schema.md
+│   └── storage.md
+│
+└── Development/
+    ├── coding-style.md
+    ├── git
