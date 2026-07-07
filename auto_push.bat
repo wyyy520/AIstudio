@@ -3,9 +3,9 @@ REM ============================================================
 REM  AIStudio 自动推送到 GitHub 仓库脚本
 REM  远程地址: https://github.com/wyyy520/AIstudio.git
 REM  使用方式: 双击运行即可自动提交并推送
+REM  注意: 本文件必须以GBK编码保存，否则中文会乱码
 REM ============================================================
 
-chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
 
 REM --- 切换到脚本所在目录（即项目根目录）---
@@ -60,12 +60,9 @@ if not errorlevel 1 (
     exit /b 0
 )
 
-REM --- 生成带时间戳的提交信息 ---
-for /f "tokens=1-6 delims=/: " %%a in ("%date% %time%") do (
-    set "TS=%%a-%%b-%%c %%d:%%e:%%f"
-)
-set "TS=%TS: =0%"
-set "COMMIT_MSG=Auto push at %TS%"
+REM --- 用PowerShell生成时间戳（兼容各种日期格式）---
+for /f "delims=" %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd_HHmmss"') do set "TS=%%i"
+set "COMMIT_MSG=Auto push %TS%"
 
 echo [提交] 提交信息: %COMMIT_MSG%
 git commit -m "%COMMIT_MSG%"
@@ -84,12 +81,12 @@ if errorlevel 1 (
     echo.
     echo ============================================================
     echo   [推送失败] 可能原因：
-    echo   1. 首次推送需先 pull: git pull origin master --allow-unrelated-histories
-    echo   2. 认证失败 - 请配置 GitHub 凭据
-    echo   3. 网络连接问题
+    echo   1. 认证失败 - 需要输入用户名和 Personal Access Token
+    echo   2. 首次推送需先 pull: git pull origin master --allow-unrelated-histories
+    echo   3. 网络问题 - 检查代理是否正常
     echo.
     echo   凭据配置: git config --global credential.helper store
-    echo   然后首次推送时输入用户名和 Personal Access Token
+    echo   然后在终端手动推送一次，输入用户名和Token后会自动记住
     echo ============================================================
     pause
     exit /b 1
