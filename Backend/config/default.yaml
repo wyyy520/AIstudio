@@ -1,0 +1,46 @@
+# =============================================================================
+# AIStudio Backend - Default Configuration
+# =============================================================================
+# This file contains the default configuration values for all environments.
+# These values can be overridden by:
+#   1. Environment-specific config files (e.g., development.yaml)
+#   2. Environment variables (highest priority)
+#
+# See README.md for detailed documentation.
+# =============================================================================
+
+# -- HTTP Server --------------------------------------------------------------
+server:
+  port: "8081"
+  host: "0.0.0.0"
+
+# -- Database -----------------------------------------------------------------
+database:
+  type: "sqlite"        # "sqlite" or "postgres"
+  url: "aistudio.db"    # file path for SQLite, connection string for Postgres
+
+# -- JWT Authentication -------------------------------------------------------
+jwt:
+  secret: "aistudio-default-secret-change-in-production"
+  expire: "24h"         # token expiration duration
+
+# -- AI Engine (gRPC) ---------------------------------------------------------
+engine:
+  address: "localhost"
+  grpc_port: 50051
+
+# -- Plugin System ------------------------------------------------------------
+plugin:
+  directory: "../Plugins"
+
+# -- Logging ------------------------------------------------------------------
+log:
+  level: "info"         # "debug", "info", "warn", "error"
+
+# -- WebSocket ----------------------------------------------------------------
+websocket:
+  port: "8082"
+
+# -- Task Manager -------------------------------------------------------------
+task:
+  num_workers: 4       # number of concurrent task workers

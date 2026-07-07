@@ -1,0 +1,6 @@
+{
+  "name": "cuda-env",
+  "version": "1.0.0",
+  "description": "CUDA environment detection and management.",
+  "entry": "detect.py"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "python-runner",
+  "version": "1.0.0",
+  "description": "Execute Python code and scripts.",
+  "entry": "runner.py"
+}

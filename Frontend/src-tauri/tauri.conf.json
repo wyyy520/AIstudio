@@ -1,0 +1,146 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev",
+    "devPath": "http://localhost:5173",
+    "distDir": "../dist"
+  },
+  "package": {
+    "productName": "AI Studio",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "dialog": {
+        "all": false,
+        "open": true,
+        "save": true,
+        "ask": true,
+        "confirm": true,
+        "message": true
+      },
+      "fs": {
+        "all": false,
+        "readFile": true,
+        "writeFile": true,
+        "readDir": true,
+        "createDir": true,
+        "removeDir": true,
+        "removeFile": true,
+        "renameFile": true,
+        "exists": true,
+        "scope": {
+          "allow": ["$APPDATA/**", "$HOME/**", "$DESKTOP/**", "$DOCUMENT/**"],
+          "deny": []
+        }
+      },
+      "shell": {
+        "all": false,
+        "open": true
+      },
+      "window": {
+        "all": true,
+        "create": true,
+        "close": true,
+        "setTitle": true,
+        "setSize": true,
+        "setPosition": true,
+        "setFocus": true,
+        "setFullscreen": true,
+        "minimize": true,
+        "maximize": true,
+        "unminimize": true,
+        "unmaximize": true,
+        "show": true,
+        "hide": true,
+        "startDragging": true
+      },
+      "globalShortcut": {
+        "all": false
+      },
+      "clipboard": {
+        "all": false,
+        "readText": true,
+        "writeText": true
+      },
+      "process": {
+        "all": false,
+        "relaunch": false,
+        "exit": false
+      },
+      "protocol": {
+        "all": false,
+        "asset": true,
+        "assetScope": {
+          "allow": ["$APPDATA/**", "$HOME/**"],
+          "deny": []
+        }
+      },
+      "path": {
+        "all": true
+      }
+    },
+    "bundle": {
+      "active": true,
+      "category": "DeveloperTool",
+      "copyright": "AI Studio Team",
+      "deb": {
+        "depends": []
+      },
+      "externalBin": [],
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ],
+      "identifier": "com.aistudio.app",
+      "longDescription": "AI Studio - AI Development Platform",
+      "macOS": {
+        "entitlements": null,
+        "exceptionDomain": "",
+        "frameworks": [],
+        "providerShortName": null,
+        "signingIdentity": null
+      },
+      "resources": [],
+      "shortDescription": "AI Development Platform",
+      "targets": "all",
+      "windows": {
+        "certificateThumbprint": null,
+        "digestAlgorithm": "sha256",
+        "timestampUrl": "",
+        "wix": {
+          "language": "zh-CN"
+        }
+      }
+    },
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'; img-src 'self' asset: https://asset.localhost data:; connect-src 'self' http://localhost:8081 http://localhost:5173"
+    },
+    "updater": {
+      "active": false
+    },
+    "windows": [
+      {
+        "center": true,
+        "decorations": false,
+        "focus": true,
+        "fullscreen": false,
+        "height": 800,
+        "label": "main",
+        "maximizable": true,
+        "maximized": false,
+        "minimizable": true,
+        "minHeight": 600,
+        "minWidth": 900,
+        "resizable": true,
+        "title": "AI Studio",
+        "width": 1280
+      }
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+[package]
+name = "ai-studio"
+version = "0.1.0"
+description = "AI Studio - AI Development Platform"
+authors = ["AI Studio Team"]
+license = "MIT"
+repository = ""
+default-run = "ai-studio"
+edition = "2021"
+rust-version = "1.70"
+
+[build-dependencies]
+tauri-build = { version = "1.5.5", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "1.8.1", features = [
+  "clipboard-read-text",
+  "clipboard-write-text",
+  "dialog-ask",
+  "dialog-confirm",
+  "dialog-message",
+  "dialog-open",
+  "dialog-save",
+  "fs-create-dir",
+  "fs-exists",
+  "fs-read-dir",
+  "fs-read-file",
+  "fs-remove-dir",
+  "fs-remove-file",
+  "fs-rename-file",
+  "fs-write-file",
+  "path-all",
+  "protocol-asset",
+  "shell-open",
+  "window-all",
+] }
+sysinfo = "0.31"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

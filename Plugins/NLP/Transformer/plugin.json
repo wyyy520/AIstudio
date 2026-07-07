@@ -1,0 +1,6 @@
+{
+  "name": "transformer",
+  "version": "1.0.0",
+  "description": "Transformer model for NLP tasks.",
+  "entry": "main.py"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "yolo",
+  "version": "8.2.0",
+  "description": "YOLOv8 object detection model. Supports training, inference, and export.",
+  "entry": "main.py"
+}

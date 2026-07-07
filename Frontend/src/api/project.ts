@@ -1,98 +1,54 @@
-import type { Project, ProjectTemplate } from '@/types/project'
-import { mockProjects, mockTemplates } from '@/mock/projects'
+import http from './request'
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-
-export async function getProjects(): Promise<Project[]> {
-  await delay(300)
-  return [...mockProjects]
+export interface ApiProject {
+  id: number
+  name: string
+  description: string
+  ownerId: number
+  status: string
+  createdAt: string
+  updatedAt: string
 }
 
-export async function getProjectById(id: string): Promise<Project | undefined> {
-  await delay(200)
-  return mockProjects.find(p => p.id === id)
+export async function getProjects(): Promise<ApiProject[]> {
+  const res = await http.get('/api/projects')
+  return (res as unknown as { data: ApiProject[] }).data
+}
+
+export async function getProjectById(id: number): Promise<ApiProject> {
+  const res = await http.get(`/api/projects/${id}`)
+  return (res as unknown as { data: ApiProject }).data
 }
 
 export async function createProject(data: {
   name: string
-  template: string
-  framework: string
-  plugins: string[]
-}): Promise<Project> {
-  await delay(500)
-  const newProject: Project = {
-    id: `proj-${Date.now()}`,
-    name: data.name,
-    type: 'custom',
-    status: 'idle',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    description: '',
-    template: data.template,
-    framework: data.framework as Project['framework'],
-    plugins: data.plugins,
-    workflows: [],
-    datasets: [],
-    models: [],
-    experiments: [],
-    environment: {
-      pythonVersion: '3.10.12',
-      cudaVersion: '12.1',
-      pytorchVersion: '2.1.0',
-      gpuStatus: 'ready',
-      dependencies: [],
-    },
-    outputs: [],
-    logs: [],
-  }
-  mockProjects.push(newProject)
-  return newProject
+  description?: string
+  ownerId: number
+}): Promise<ApiProject> {
+  const res = await http.post('/api/projects', data)
+  return (res as unknown as { data: ApiProject }).data
 }
 
-export async function deleteProject(id: string): Promise<boolean> {
-  await delay(300)
-  const index = mockProjects.findIndex(p => p.id === id)
-  if (index !== -1) {
-    mockProjects.splice(index, 1)
-    return true
-  }
-  return false
+export async function updateProject(id: number, data: Partial<{ name: string; description: string; status: string }>): Promise<ApiProject> {
+  const res = await http.put(`/api/projects/${id}`, data)
+  return (res as unknown as { data: ApiProject }).data
 }
 
-export async function getTemplates(): Promise<ProjectTemplate[]> {
-  await delay(200)
-  return [...mockTemplates]
+export async function deleteProject(id: number): Promise<void> {
+  await http.delete(`/api/projects/${id}`)
 }
 
-export async function runWorkflow(projectId: string, workflowId: string): Promise<boolean> {
-  await delay(1000)
-  const project = mockProjects.find(p => p.id === projectId)
-  if (project) {
-    const workflow = project.workflows.find(w => w.id === workflowId)
-    if (workflow) {
-      workflow.status = 'running'
-      setTimeout(() => {
-        workflow.status = 'completed'
-      }, 3000)
-      return true
-    }
-  }
-  return false
+export async function getTemplates(): Promise<ApiProject[]> {
+  const res = await http.get('/api/projects/templates')
+  return (res as unknown as { data: ApiProject[] }).data
 }
 
-export async function trainModel(projectId: string, modelId: string): Promise<boolean> {
-  await delay(1000)
-  return true
+export async function runWorkflow(projectId: number, workflowId: string): Promise<unknown> {
+  const res = await http.post(`/api/projects/${projectId}/workflows/${workflowId}/run`)
+  return (res as unknown as { data: unknown }).data
 }
 
-export async function repairEnvironment(projectId: string): Promise<boolean> {
-  await delay(2000)
-  const project = mockProjects.find(p => p.id === projectId)
-  if (project) {
-    project.environment.gpuStatus = 'ready'
-    project.environment.dependencies.forEach(dep => {
-      dep.status = 'installed'
-    })
-  }
-  return true
+export async function repairEnvironment(projectId: number): Promise<unknown> {
+  const res = await http.post(`/api/projects/${projectId}/environment/repair`)
+  return (res as unknown as { data: unknown }).data
 }

@@ -1,65 +1,58 @@
-import type { Plugin, InstallTask, PluginCategory } from '@/pages/PluginStore/types'
-import { mockPlugins, createMockInstallSteps } from '@/pages/PluginStore/mock'
+import http from './request'
 
-export async function fetchPlugins(category?: PluginCategory): Promise<Plugin[]> {
-  await delay(300)
-  if (!category) return [...mockPlugins]
-  return mockPlugins.filter(p => p.category === category)
+export interface ApiPlugin {
+  name: string
+  version: string
+  description: string
+  entry: string
+  status: string
+  path: string
+  createdAt: string
+  updatedAt: string
 }
 
-export async function fetchPluginDetail(pluginId: string): Promise<Plugin | undefined> {
-  await delay(200)
-  return mockPlugins.find(p => p.id === pluginId)
+export async function getPlugins(): Promise<ApiPlugin[]> {
+  const res = await http.get('/api/plugins')
+  return (res as unknown as { data: ApiPlugin[] }).data
 }
 
-export async function searchPlugins(query: string): Promise<Plugin[]> {
-  await delay(200)
-  const q = query.toLowerCase()
-  return mockPlugins.filter(p =>
-    p.name.toLowerCase().includes(q) ||
-    p.description.toLowerCase().includes(q) ||
-    p.tags.some(t => t.toLowerCase().includes(q)) ||
-    p.capabilities.some(c => c.toLowerCase().includes(q))
-  )
+export async function getPluginByName(name: string): Promise<ApiPlugin> {
+  const res = await http.get(`/api/plugins/${name}`)
+  return (res as unknown as { data: ApiPlugin }).data
 }
 
-export async function installPlugin(pluginId: string): Promise<InstallTask> {
-  await delay(100)
-  const plugin = mockPlugins.find(p => p.id === pluginId)
-  if (!plugin) throw new Error(`Plugin ${pluginId} not found`)
-  return {
-    id: `task-${Date.now()}`,
-    pluginId,
-    pluginName: plugin.name,
-    status: 'running',
-    steps: createMockInstallSteps(plugin.name),
-    startedAt: new Date().toISOString(),
-  }
+export async function enablePlugin(name: string): Promise<void> {
+  await http.post(`/api/plugins/${name}/enable`)
 }
 
-export async function uninstallPlugin(pluginId: string): Promise<void> {
-  await delay(500)
-  const plugin = mockPlugins.find(p => p.id === pluginId)
-  if (plugin) {
-    plugin.status = 'not-installed'
-    delete plugin.installedAt
-  }
+export async function disablePlugin(name: string): Promise<void> {
+  await http.post(`/api/plugins/${name}/disable`)
 }
 
-export async function updatePlugin(pluginId: string): Promise<InstallTask> {
-  await delay(100)
-  const plugin = mockPlugins.find(p => p.id === pluginId)
-  if (!plugin) throw new Error(`Plugin ${pluginId} not found`)
-  return {
-    id: `task-update-${Date.now()}`,
-    pluginId,
-    pluginName: plugin.name,
-    status: 'running',
-    steps: createMockInstallSteps(plugin.name).slice(3),
-    startedAt: new Date().toISOString(),
-  }
+export async function uninstallPlugin(name: string): Promise<void> {
+  await http.delete(`/api/plugins/${name}`)
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+export async function installPluginAction(name: string): Promise<void> {
+  await http.post('/api/plugins/install', { name })
+}
+
+export async function updatePluginStatus(name: string, status: string): Promise<void> {
+  await http.put(`/api/plugins/${name}/status`, { status })
+}
+
+export async function executePlugin(name: string, input: Record<string, unknown>): Promise<unknown> {
+  const res = await http.post(`/api/plugins/${name}/execute`, { input })
+  return (res as unknown as { data: unknown }).data
+}
+
+// Aliases for store compatibility
+export async function installPlugin(pluginId: string): Promise<unknown> {
+  const res = await http.post('/api/plugins/install', { name: pluginId })
+  return (res as unknown as { data: unknown }).data
+}
+
+export async function updatePlugin(pluginId: string): Promise<unknown> {
+  const res = await http.put(`/api/plugins/update`, { name: pluginId })
+  return (res as unknown as { data: unknown }).data
 }

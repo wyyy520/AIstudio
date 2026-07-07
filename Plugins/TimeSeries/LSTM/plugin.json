@@ -1,0 +1,6 @@
+{
+  "name": "lstm",
+  "version": "1.0.0",
+  "description": "LSTM model for time series prediction.",
+  "entry": "main.py"
+}

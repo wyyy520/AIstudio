@@ -1,0 +1,6 @@
+{
+  "name": "sam",
+  "version": "1.2.0",
+  "description": "Segment Anything Model - universal image segmentation.",
+  "entry": "main.py"
+}

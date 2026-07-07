@@ -1,5 +1,8 @@
 <template>
   <div class="main-layout">
+    <!-- ===== 自定义标题栏 (窗口拖拽) ===== -->
+    <TitleBar />
+
     <!-- ===== 左侧导航栏 ===== -->
     <aside class="sidebar">
       <!-- 顶部: Logo 区域 -->
@@ -97,6 +100,7 @@
 
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
+import TitleBar from '@/components/titlebar/TitleBar.vue'
 
 interface NavItem {
   path: string
@@ -170,7 +174,7 @@ function navigateTo(path: string): void {
 /* ===== 侧边栏 ===== */
 .sidebar {
   position: fixed;
-  top: 0;
+  top: var(--titlebar-height);
   left: 0;
   bottom: var(--statusbar-height);
   width: var(--sidebar-width);
@@ -278,6 +282,7 @@ function navigateTo(path: string): void {
 
 /* ===== 主内容区域 ===== */
 .main-content {
+  margin-top: var(--titlebar-height);
   margin-left: var(--sidebar-width);
   margin-bottom: var(--statusbar-height);
   flex: 1;

@@ -1,172 +1,112 @@
 package api
 
 import (
-	"encoding/json"
-	"net/http"
-
-	"github.com/aistudio/backend/internal/workflow"
+	"github.com/aistudio/backend/internal/api/handlers"
+	"github.com/aistudio/backend/internal/api/middleware"
+	"github.com/aistudio/backend/internal/service"
+	"github.com/gin-gonic/gin"
 )
 
-type Handler struct {
-	engine *workflow.Engine
-}
+// SetupRouter configures the Gin router with all API routes.
+// It takes the aggregated Services struct and middleware config, then wires everything together.
+// Middleware is applied via middleware.Apply() for consistent configuration.
+func SetupRouter(svc *service.Services, mwCfg middleware.Config) *gin.Engine {
+	r := gin.New()
 
-func NewHandler(engine *workflow.Engine) *Handler {
-	return &Handler{engine: engine}
-}
+	// ---- Global middleware (unified registration) ----
+	// Order: Recovery → Logger → CORS → RateLimit → Auth
+	// Configure via middleware.Config or environment variables
+	middleware.Apply(r, mwCfg)
 
-func (h *Handler) SetupRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/api/workflow/run", h.handleRunWorkflow)
-	mux.HandleFunc("/api/workflow/task/", h.handleGetTask)
-	mux.HandleFunc("/api/workflow/nodes", h.handleListNodeTypes)
-	mux.HandleFunc("/api/health", h.handleHealth)
-}
+	// ---- Health ----
+	healthHandler := handlers.NewHealthHandler()
+	r.GET("/api/health", healthHandler.Check)
 
-type APIResponse struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-}
+	// ---- Auth (login is public) ----
+	authHandler := handlers.NewAuthHandler()
+	r.POST("/api/auth/login", authHandler.Login)
 
-func writeJSON(w http.ResponseWriter, status int, resp APIResponse) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(resp)
-}
-
-func (h *Handler) handleRunWorkflow(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		writeJSON(w, http.StatusMethodNotAllowed, APIResponse{
-			Code:    -1,
-			Message: "method not allowed, use POST",
-		})
-		return
+	// ---- Users ----
+	userHandler := handlers.NewUserHandler(svc.User)
+	users := r.Group("/api/users")
+	{
+		users.GET("", userHandler.List)
+		users.GET("/:id", userHandler.Get)
+		users.POST("", userHandler.Create)
+		users.PUT("/:id", userHandler.Update)
+		users.DELETE("/:id", userHandler.Delete)
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
+	// ---- Projects ----
+	projectHandler := handlers.NewProjectHandler(svc.Project)
+	projects := r.Group("/api/projects")
+	{
+		projects.GET("", projectHandler.List)
+		projects.GET("/:id", projectHandler.Get)
+		projects.POST("", projectHandler.Create)
+		projects.PUT("/:id", projectHandler.Update)
+		projects.DELETE("/:id", projectHandler.Delete)
 	}
 
-	var body map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeJSON(w, http.StatusBadRequest, APIResponse{
-			Code:    -1,
-			Message: "invalid JSON body: " + err.Error(),
-		})
-		return
+	// ---- Workflows ----
+	workflowHandler := handlers.NewWorkflowHandler(svc.Workflow)
+	workflows := r.Group("/api/workflows")
+	{
+		workflows.GET("", workflowHandler.List)
+		workflows.GET("/:id", workflowHandler.Get)
+		workflows.POST("", workflowHandler.Create)
+		workflows.PUT("/:id", workflowHandler.Update)
+		workflows.DELETE("/:id", workflowHandler.Delete)
+		// Preserved: workflow run API
+		workflows.POST("/:id/run", workflowHandler.Run)
+		// Preserved: node list API
+		workflows.GET("/nodes", workflowHandler.ListNodeTypes)
 	}
 
-	workflowJSON, err := json.Marshal(body)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, APIResponse{
-			Code:    -1,
-			Message: "failed to re-encode JSON: " + err.Error(),
-		})
-		return
+	// ---- Tasks ----
+	taskHandler := handlers.NewTaskHandler(svc.Task)
+	tasks := r.Group("/api/tasks")
+	{
+		tasks.GET("", taskHandler.List)
+		tasks.GET("/:id", taskHandler.Get)
+		tasks.POST("", taskHandler.Create)
+		tasks.PUT("/:id/cancel", taskHandler.Cancel)
+		tasks.PUT("/:id/status", taskHandler.UpdateStatus)
+		tasks.DELETE("/:id", taskHandler.Delete)
 	}
 
-	result, err := h.engine.Run(r.Context(), workflowJSON)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, APIResponse{
-			Code:    -1,
-			Message: err.Error(),
-		})
-		return
+	// ---- Plugins ----
+	pluginHandler := handlers.NewPluginHandler(svc.Plugin)
+	plugins := r.Group("/api/plugins")
+	{
+		plugins.GET("", pluginHandler.List)
+		plugins.GET("/:name", pluginHandler.Get)
+		plugins.POST("/install", pluginHandler.Install)
+		plugins.PUT("/:name/status", pluginHandler.UpdateStatus)
+		plugins.DELETE("/:name", pluginHandler.Uninstall)
+		plugins.POST("/:name/execute", pluginHandler.Execute)
 	}
 
-	writeJSON(w, http.StatusOK, APIResponse{
-		Code:    0,
-		Message: "success",
-		Data: map[string]interface{}{
-			"task_id": result.TaskID,
-			"status":  result.Status,
-		},
-	})
-}
-
-func (h *Handler) handleListNodeTypes(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		writeJSON(w, http.StatusMethodNotAllowed, APIResponse{
-			Code:    -1,
-			Message: "method not allowed, use GET",
-		})
-		return
+	// ---- Agent ----
+	agentHandler := handlers.NewAgentHandler(svc.Agent)
+	agent := r.Group("/api/agent")
+	{
+		agent.POST("/chat", agentHandler.Chat)
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	nodes := h.engine.Registry().List()
-	type nodeInfo struct {
-		Type        string          `json:"type"`
-		Plugin      string          `json:"plugin"`
-		Name        string          `json:"name"`
-		Description string          `json:"description"`
-		Inputs      []workflow.Port `json:"inputs"`
-		Outputs     []workflow.Port `json:"outputs"`
-	}
-	items := make([]nodeInfo, 0, len(nodes))
-	for _, def := range nodes {
-		items = append(items, nodeInfo{
-			Type:        def.Type,
-			Plugin:      def.Plugin,
-			Name:        def.Name,
-			Description: def.Description,
-			Inputs:      def.Inputs,
-			Outputs:     def.Outputs,
-		})
+	// ---- Logs ----
+	logHandler := handlers.NewLogHandler(svc.Log)
+	logs := r.Group("/api/logs")
+	{
+		logs.GET("", logHandler.Query)
 	}
 
-	writeJSON(w, http.StatusOK, APIResponse{
-		Code:    0,
-		Message: "success",
-		Data:    items,
-	})
-}
-
-func (h *Handler) handleGetTask(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		writeJSON(w, http.StatusMethodNotAllowed, APIResponse{
-			Code:    -1,
-			Message: "method not allowed, use GET",
-		})
-		return
+	// ---- Environment ----
+	envHandler := handlers.NewEnvironmentHandler(svc.Environment)
+	environment := r.Group("/api/environment")
+	{
+		environment.GET("/status", envHandler.GetStatus)
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	taskID := r.URL.Path[len("/api/workflow/task/"):]
-	if taskID == "" {
-		writeJSON(w, http.StatusBadRequest, APIResponse{
-			Code:    -1,
-			Message: "task_id is required",
-		})
-		return
-	}
-
-	result, ok := h.engine.GetTask(taskID)
-	if !ok {
-		writeJSON(w, http.StatusNotFound, APIResponse{
-			Code:    -1,
-			Message: "task not found",
-		})
-		return
-	}
-
-	writeJSON(w, http.StatusOK, APIResponse{
-		Code:    0,
-		Message: "success",
-		Data:    result,
-	})
-}
-
-func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	writeJSON(w, http.StatusOK, APIResponse{
-		Code:    0,
-		Message: "AIStudio Workflow Engine is running",
-	})
+	return r
 }

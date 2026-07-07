@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package aiengine;
+
+option python_package = "proto";
+
+// AIEngine service definition
+service AIEngine {
+  // Execute an AI task
+  rpc ExecuteTask (TaskRequest) returns (TaskResponse);
+
+  // Get model status
+  rpc GetModelStatus (ModelStatusRequest) returns (ModelStatusResponse);
+
+  // Load a model
+  rpc LoadModel (LoadModelRequest) returns (LoadModelResponse);
+
+  // Unload a model
+  rpc UnloadModel (UnloadModelRequest) returns (UnloadModelResponse);
+
+  // Health check
+  rpc HealthCheck (HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// TaskRequest represents an AI task submission
+message TaskRequest {
+  string task_id = 1;
+  string task_type = 2;
+  string input = 3;
+  map<string, string> config = 4;
+}
+
+// TaskResponse represents the result of an AI task
+message TaskResponse {
+  string task_id = 1;
+  string status = 2;
+  string result = 3;
+  map<string, string> metadata = 4;
+}
+
+// ModelStatusRequest for checking model status
+message ModelStatusRequest {
+  string model_name = 1;
+}
+
+// ModelStatusResponse returns model information
+message ModelStatusResponse {
+  string model_name = 1;
+  string status = 2;
+  string device = 3;
+  int64 memory_usage = 4;
+}
+
+// LoadModelRequest to load a model
+message LoadModelRequest {
+  string model_name = 1;
+  string model_type = 2;
+  string model_path = 3;
+  map<string, string> options = 4;
+}
+
+// LoadModelResponse after loading
+message LoadModelResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// UnloadModelRequest to unload a model
+message UnloadModelRequest {
+  string model_name = 1;
+}
+
+// UnloadModelResponse after unloading
+message UnloadModelResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// HealthCheckRequest for health probe
+message HealthCheckRequest {}
+
+// HealthCheckResponse for health probe
+message HealthCheckResponse {
+  string status = 1;
+  string version = 2;
+}

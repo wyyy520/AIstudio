@@ -1,0 +1,21 @@
+# =============================================================================
+# AIStudio Backend - Production Configuration
+# =============================================================================
+# Overrides default.yaml for production deployment.
+# Environment variables should be used for sensitive values like JWT_SECRET
+# and DATABASE_URL in production.
+# =============================================================================
+
+server:
+  host: "0.0.0.0"
+
+database:
+  type: "postgres"
+  url: "postgresql://localhost:5432/aistudio"
+
+jwt:
+  secret: ""              # MUST be set via JWT_SECRET env var in production
+  expire: "2h"
+
+log:
+  level: "warn"
