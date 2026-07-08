@@ -34,3 +34,21 @@ func (h *AgentHandler) Chat(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "success", "data": resp})
 }
+
+// PlanOnly analyzes a message and returns a plan without executing.
+// POST /api/agent/plan
+func (h *AgentHandler) PlanOnly(c *gin.Context) {
+	var req service.ChatRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": err.Error()})
+		return
+	}
+
+	plan, err := h.svc.PlanOnly(c.Request.Context(), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "success", "data": plan})
+}

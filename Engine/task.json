@@ -1,0 +1,14 @@
+{
+  "task_id": "test-yolo-001",
+  "plugin": "yolo",
+  "action": "train",
+  "params": {
+    "dataset": "coco128.yaml",
+    "model": "yolov8n.pt",
+    "epochs": 5,
+    "batch": 8,
+    "img_size": 640,
+    "device": "cpu",
+    "output_dir": "../Storage/models/"
+  }
+}

@@ -89,18 +89,42 @@ func (n *ExportNode) Execute(ctx context.Context, inputs map[string]interface{},
 	}, nil
 }
 
-type MCPNode struct{}
+type MCPNode struct {
+	MCPRuntime MCPRuntime
+}
 
 func (n *MCPNode) Execute(ctx context.Context, inputs map[string]interface{}, params map[string]interface{}) (map[string]interface{}, error) {
 	server := "default"
 	if v, ok := params["server"]; ok {
 		server = fmt.Sprintf("%v", v)
 	}
+
+	toolName := "default"
+	if v, ok := params["tool"]; ok {
+		toolName = fmt.Sprintf("%v", v)
+	}
+
+	// Use real MCP runtime if available
+	if n.MCPRuntime != nil {
+		result, err := n.MCPRuntime.CallTool(ctx, server, toolName, params)
+		if err != nil {
+			return nil, fmt.Errorf("mcp call failed: %w", err)
+		}
+		if !result.Success {
+			return nil, fmt.Errorf("mcp tool error: %s", result.Error)
+		}
+		return map[string]interface{}{
+			"out_result": result.Output,
+		}, nil
+	}
+
+	// Fallback to mock behavior
 	return map[string]interface{}{
 		"out_result": map[string]interface{}{
 			"status":   "ok",
 			"server":   server,
-			"output":   fmt.Sprintf("MCP call to %s completed successfully", server),
+			"tool":     toolName,
+			"output":   fmt.Sprintf("MCP call to %s.%s completed successfully", server, toolName),
 			"duration": fmt.Sprintf("%dms", rand.Intn(1000)+100),
 		},
 	}, nil

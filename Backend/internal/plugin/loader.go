@@ -3,8 +3,10 @@ package plugin
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // FileLoader implements Loader using the filesystem.
@@ -42,6 +44,17 @@ func (l *FileLoader) LoadManifest(path string) (*PluginManifest, error) {
 		return nil, fmt.Errorf("plugin manifest %s: entry is required", path)
 	}
 
+	// Set defaults
+	if manifest.Type == "" {
+		manifest.Type = "system"
+	}
+	if manifest.ID == "" {
+		manifest.ID = manifest.Name
+	}
+	if manifest.Source == "" {
+		manifest.Source = "local"
+	}
+
 	return &manifest, nil
 }
 
@@ -71,13 +84,27 @@ func (l *FileLoader) LoadPlugin(path string) (*Plugin, error) {
 		return nil, fmt.Errorf("plugin entry file not found: %s", entryPath)
 	}
 
+	now := time.Now()
 	plugin := &Plugin{
-		Name:        manifest.Name,
-		Version:     manifest.Version,
-		Description: manifest.Description,
-		Entry:       manifest.Entry,
-		Path:        path,
-		Status:      StatusInstalled,
+		ID:           manifest.ID,
+		Name:         manifest.Name,
+		Version:      manifest.Version,
+		Author:       manifest.Author,
+		Type:         PluginType(manifest.Type),
+		Description:  manifest.Description,
+		Entry:        manifest.Entry,
+		Source:       PluginSource(manifest.Source),
+		Path:         path,
+		Dependencies: manifest.Dependencies,
+		Nodes:        manifest.Nodes,
+		Status:       StatusInstalled,
+		Enabled:      true,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+
+	if plugin.ID == "" {
+		plugin.ID = plugin.Name
 	}
 
 	return plugin, nil
@@ -88,7 +115,7 @@ func (l *FileLoader) ScanDir() ([]*Plugin, error) {
 	entries, err := os.ReadDir(l.pluginsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil // plugins dir doesn't exist yet
+			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to read plugins directory %s: %w", l.pluginsDir, err)
 	}
@@ -102,8 +129,7 @@ func (l *FileLoader) ScanDir() ([]*Plugin, error) {
 		pluginPath := filepath.Join(l.pluginsDir, entry.Name())
 		plugin, err := l.LoadPlugin(pluginPath)
 		if err != nil {
-			// Log but don't fail the entire scan
-			fmt.Printf("[plugin-loader] warning: failed to load plugin from %s: %v\n", pluginPath, err)
+			log.Printf("[plugin-loader] warning: failed to load plugin from %s: %v", pluginPath, err)
 			continue
 		}
 
@@ -111,4 +137,9 @@ func (l *FileLoader) ScanDir() ([]*Plugin, error) {
 	}
 
 	return plugins, nil
+}
+
+// GetPluginsDir returns the plugins directory path.
+func (l *FileLoader) GetPluginsDir() string {
+	return l.pluginsDir
 }

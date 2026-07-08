@@ -1,0 +1,49 @@
+# =============================================================================
+# AIStudio - Backend Configuration
+# =============================================================================
+# This file configures the Go backend server and its services.
+# For environment-specific overrides, use Backend/config/development.yaml
+# =============================================================================
+
+server:
+  host: "0.0.0.0"
+  port: "8081"
+  cors_origins:
+    - "http://localhost:1420"
+    - "http://localhost:5173"
+    - "tauri://localhost"
+  read_timeout: 30   # seconds
+  write_timeout: 30  # seconds
+
+database:
+  type: "sqlite"
+  url: "aistudio.db"
+  max_open_conns: 25
+  max_idle_conns: 10
+  conn_max_lifetime: 300  # seconds
+
+jwt:
+  secret: "aistudio-default-secret-change-in-production"
+  expire: "24h"
+
+websocket:
+  enabled: true
+  heartbeat_interval: 30  # seconds
+  max_connections: 1000
+
+task:
+  num_workers: 4
+  queue_size: 100
+  retry_max: 3
+  retry_delay: 5  # seconds
+
+llm:
+  provider: ""       # "openai", "claude", "gemini", "mock"
+  api_key: ""
+  base_url: ""
+  model: ""
+
+mcp:
+  config_path: "Config/mcp.json"
+  auto_connect: true
+  default_timeout: 30000  # ms

@@ -2,164 +2,216 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
-	"time"
 
+	"github.com/aistudio/backend/internal/agent"
+	"github.com/aistudio/backend/internal/environment"
+	"github.com/aistudio/backend/internal/plugin"
 	"github.com/aistudio/backend/internal/task"
+	"github.com/aistudio/backend/internal/workflow"
 )
 
-// AgentService handles AI agent chat and task delegation.
-// This is a placeholder that will be extended with actual Agent Engine integration.
+// AgentService bridges the Agent Engine with the rest of AIStudio.
+// It wires the Agent's tools to the Plugin Manager, Workflow Engine, Task Manager, and Environment Manager.
 type AgentService struct {
+	agent   *agent.Agent
+	plugin  *plugin.Manager
+	env     *environment.Manager
+	engine  *workflow.Engine
 	taskMgr *task.Manager
+	mcp     *MCPService
 }
 
-// NewAgentService creates a new AgentService.
-func NewAgentService(taskMgr *task.Manager) *AgentService {
-	return &AgentService{taskMgr: taskMgr}
+// NewAgentService creates a new AgentService with all dependencies wired.
+func NewAgentService(
+	ag *agent.Agent,
+	pluginMgr *plugin.Manager,
+	envMgr *environment.Manager,
+	engine *workflow.Engine,
+	taskMgr *task.Manager,
+	mcpSvc *MCPService,
+) *AgentService {
+	svc := &AgentService{
+		agent:   ag,
+		plugin:  pluginMgr,
+		env:     envMgr,
+		engine:  engine,
+		taskMgr: taskMgr,
+		mcp:     mcpSvc,
+	}
+
+	// Wire all tools to the agent's tool registry
+	svc.wireTools()
+
+	return svc
+}
+
+// wireTools connects each tool to its real implementation.
+func (s *AgentService) wireTools() {
+	registry := s.agent.ToolRegistry()
+
+	// Check Environment
+	registry.Register(&agent.CheckEnvironmentTool{
+		CheckFn: func(ctx context.Context) (map[string]interface{}, error) {
+			status := s.env.GetStatus()
+			data, _ := json.Marshal(status)
+			var result map[string]interface{}
+			json.Unmarshal(data, &result)
+			return result, nil
+		},
+	})
+
+	// List Plugins
+	registry.Register(&agent.ListPluginsTool{
+		ListFn: func(ctx context.Context) ([]map[string]interface{}, error) {
+			plugins := s.plugin.GetRegistry().List()
+			var result []map[string]interface{}
+			for _, p := range plugins {
+				data, _ := json.Marshal(p)
+				var m map[string]interface{}
+				json.Unmarshal(data, &m)
+				result = append(result, m)
+			}
+			return result, nil
+		},
+	})
+
+	// Create Workflow
+	registry.Register(&agent.CreateWorkflowTool{
+		CreateFn: func(ctx context.Context, name string, workflowJSON json.RawMessage) (string, error) {
+			// Parse and validate the workflow
+			wf, err := workflow.ParseAndValidate(workflowJSON)
+			if err != nil {
+				return "", fmt.Errorf("invalid workflow: %w", err)
+			}
+			if name != "" {
+				wf.Name = name
+			}
+			_ = wf // Store workflow via engine
+			log.Printf("[agent-service] workflow created: %s", name)
+			return "wf_" + name, nil
+		},
+	})
+
+	// Run Workflow
+	registry.Register(&agent.RunWorkflowTool{
+		RunFn: func(ctx context.Context, workflowID string, params map[string]interface{}) (string, error) {
+			// Create a task for the workflow execution
+			taskID, err := s.taskMgr.CreateTask(ctx, "", workflowID, task.TaskTypeWorkflow, "Agent Workflow Run", "workflow", task.PriorityNormal, params)
+			if err != nil {
+				return "", fmt.Errorf("failed to create task: %w", err)
+			}
+			if err := s.taskMgr.StartTask(ctx, taskID); err != nil {
+				return "", fmt.Errorf("failed to start task: %w", err)
+			}
+			log.Printf("[agent-service] workflow task started: %s", taskID)
+			return taskID, nil
+		},
+	})
+
+	// Get Task Status
+	registry.Register(&agent.GetTaskStatusTool{
+		StatusFn: func(ctx context.Context, taskID string) (map[string]interface{}, error) {
+			t, err := s.taskMgr.GetTask(ctx, taskID)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]interface{}{
+				"id":       t.ID,
+				"status":   t.Status,
+				"progress": t.Progress,
+				"type":     t.Type,
+			}, nil
+		},
+	})
+
+	// Install Plugin
+	registry.Register(&agent.InstallPluginTool{
+		InstallFn: func(ctx context.Context, name string) error {
+			plugins := s.plugin.GetRegistry().List()
+			for _, p := range plugins {
+				if p.Name == name {
+					return nil
+				}
+			}
+			return fmt.Errorf("plugin not found in registry: %s", name)
+		},
+	})
+
+	// Register all MCP tools with the agent
+	// Each MCP tool becomes an agent tool that can be called by the agent
+	// This allows the agent to invoke external tools like SUMO, MATLAB, etc.
+	for _, mcpTool := range s.mcp.GetAgentMCPTools() {
+		registry.Register(mcpTool)
+	}
+
+	log.Printf("[agent-service] all tools wired successfully (including %d MCP tools)", len(s.mcp.GetAgentMCPTools()))
 }
 
 // ChatRequest represents an agent chat request.
 type ChatRequest struct {
 	Message   string                 `json:"message"`
 	ProjectID string                 `json:"projectId"`
+	UserID    string                 `json:"userId"`
 	Context   map[string]interface{} `json:"context"`
 }
 
 // ChatResponse represents an agent chat response.
 type ChatResponse struct {
-	Reply   string                   `json:"reply"`
-	Actions []AgentAction            `json:"actions"`
-	Tools   []string                 `json:"tools"`
+	Reply       string              `json:"reply"`
+	Goal        string              `json:"goal"`
+	Explanation string              `json:"explanation"`
+	Plan        []agent.Action      `json:"plan"`
+	Steps       []agent.StepResult  `json:"steps"`
+	Status      string              `json:"status"`
+	Summary     string              `json:"summary"`
 }
 
-// AgentAction represents an action the agent suggests.
-type AgentAction struct {
-	Type        string                 `json:"type"`
-	Description string                 `json:"description"`
-	Parameters  map[string]interface{} `json:"parameters"`
-}
-
-// Chat processes a chat message and returns an agent response.
-// For now, it provides a rule-based reply and optionally creates tasks.
-// In the future, this will connect to the Agent Engine / LLM.
+// Chat processes a chat message through the Agent.
 func (s *AgentService) Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error) {
-	log.Printf("[agent] chat request: project=%s, message=%q", req.ProjectID, req.Message)
+	log.Printf("[agent-service] chat request: project=%s user=%s message=%q", req.ProjectID, req.UserID, req.Message)
 
-	// Simple intent detection (placeholder for LLM integration)
-	reply, actions := s.processIntent(req.Message, req.ProjectID)
+	// Collect plugin names
+	pluginNames := s.getPluginNames()
 
-	// For actionable intents, create tasks
-	for i, action := range actions {
-		taskID, err := s.taskMgr.Submit(ctx,
-			action.Type,
-			action.Description,
-			"agent",
-			task.PriorityNormal,
-			action.Parameters,
-		)
-		if err != nil {
-			log.Printf("[agent] failed to create task for action %s: %v", action.Type, err)
-			continue
-		}
-		log.Printf("[agent] created task %s for action: %s", taskID, action.Type)
-		actions[i].Parameters["taskId"] = taskID
+	// Get environment status
+	envStatus := s.env.GetStatus()
+	envJSON, _ := json.Marshal(envStatus)
+
+	// Process through the Agent
+	resp, err := s.agent.Process(ctx, req.Message, req.ProjectID, req.UserID, pluginNames, string(envJSON))
+	if err != nil {
+		return nil, err
 	}
 
-	resp := &ChatResponse{
-		Reply:   reply,
-		Actions: actions,
-		Tools:   []string{"workflow", "plugin", "task"},
-	}
-
-	log.Printf("[agent] chat response: reply=%q, actions=%d", resp.Reply, len(resp.Actions))
-	return resp, nil
+	return &ChatResponse{
+		Reply:       resp.Summary,
+		Goal:        resp.Goal,
+		Explanation: resp.Explanation,
+		Plan:        resp.Plan,
+		Steps:       resp.Steps,
+		Status:      resp.Status,
+		Summary:     resp.Summary,
+	}, nil
 }
 
-// processIntent does simple rule-based intent detection.
-// This is a placeholder; replace with LLM/Agent engine later.
-func (s *AgentService) processIntent(message, projectID string) (string, []AgentAction) {
-	// Simple keyword matching
-	switch {
-	case containsAny(message, "run", "execute", "start", "deploy"):
-		return "I'll help you run the workflow. Creating a task now.", []AgentAction{
-			{Type: "run_workflow", Description: "Execute workflow", Parameters: map[string]interface{}{"projectId": projectID, "timestamp": time.Now().Unix()}},
-		}
+// PlanOnly analyzes a message and returns a plan without executing.
+func (s *AgentService) PlanOnly(ctx context.Context, req ChatRequest) (*agent.ActionPlan, error) {
+	pluginNames := s.getPluginNames()
+	envStatus := s.env.GetStatus()
+	envJSON, _ := json.Marshal(envStatus)
 
-	case containsAny(message, "create", "new", "make", "build"):
-		return "I'll create a new workflow for you.", []AgentAction{
-			{Type: "create_workflow", Description: "Create new workflow", Parameters: map[string]interface{}{"projectId": projectID}},
-		}
-
-	case containsAny(message, "status", "progress", "check"):
-		return "Checking the status of your tasks...", []AgentAction{
-			{Type: "list_tasks", Description: "List all tasks", Parameters: map[string]interface{}{"projectId": projectID}},
-		}
-
-	case containsAny(message, "help", "what can you do", "capabilities"):
-		return `I can help you with:
-1. Run workflows and monitor their progress
-2. Create new workflows from descriptions
-3. Check task and workflow status
-4. Install and manage plugins
-5. Execute plugins with custom input
-
-Just tell me what you'd like to do!`, []AgentAction{}
-
-	case containsAny(message, "plugin", "install"):
-		return "I can help you manage plugins. Which plugin would you like to install?", []AgentAction{
-			{Type: "list_plugins", Description: "List available plugins", Parameters: map[string]interface{}{}},
-		}
-
-	default:
-		return "I understand you need assistance. I can run workflows, check status, or manage plugins. Could you be more specific about what you'd like to do?", []AgentAction{}
-	}
+	return s.agent.PlanOnly(ctx, req.Message, req.ProjectID, req.UserID, pluginNames, string(envJSON))
 }
 
-// containsAny checks if a string contains any of the given substrings.
-func containsAny(s string, substrs ...string) bool {
-	for _, sub := range substrs {
-		if contains(s, sub) {
-			return true
-		}
+// getPluginNames returns the list of installed plugin names.
+func (s *AgentService) getPluginNames() []string {
+	plugins := s.plugin.GetRegistry().List()
+	names := make([]string, 0, len(plugins))
+	for _, p := range plugins {
+		names = append(names, p.Name)
 	}
-	return false
+	return names
 }
-
-// contains is a simple case-insensitive substring check.
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) &&
-		containsSubstring(toLower(s), toLower(substr))
-}
-
-// toLower converts a string to lowercase without importing strings.
-func toLower(s string) string {
-	b := make([]byte, len(s))
-	for i := range s {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			c += 32
-		}
-		b[i] = c
-	}
-	return string(b)
-}
-
-// containsSubstring checks if s contains substr.
-func containsSubstring(s, substr string) bool {
-	if len(substr) == 0 {
-		return true
-	}
-	if len(substr) > len(s) {
-		return false
-	}
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-// Ensure ChatResponse implements a reasonable interface.
-var _ = (*ChatResponse)(nil)

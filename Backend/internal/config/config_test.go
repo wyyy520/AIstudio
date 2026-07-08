@@ -21,8 +21,8 @@ func TestDefaultValues(t *testing.T) {
 			Expire: "24h",
 		},
 		Engine: EngineConfig{
-			Address:  "localhost",
-			GrpcPort: 50051,
+			PythonPath: "python",
+			EngineDir:  "../Engine",
 		},
 		Plugin: PluginConfig{
 			Directory: "../Plugins",
@@ -50,8 +50,8 @@ func TestDefaultValues(t *testing.T) {
 	if cfg.JWT.Expire != "24h" {
 		t.Errorf("expected jwt expire 24h, got %s", cfg.JWT.Expire)
 	}
-	if cfg.Engine.GrpcPort != 50051 {
-		t.Errorf("expected engine grpc_port 50051, got %d", cfg.Engine.GrpcPort)
+	if cfg.Engine.PythonPath != "python" {
+		t.Errorf("expected engine python_path python, got %s", cfg.Engine.PythonPath)
 	}
 	if cfg.Log.Level != "info" {
 		t.Errorf("expected log level info, got %s", cfg.Log.Level)
@@ -75,8 +75,8 @@ func TestHelperMethods(t *testing.T) {
 			URL:  "test.db",
 		},
 		Engine: EngineConfig{
-			Address:  "10.0.0.1",
-			GrpcPort: 50051,
+			PythonPath: "python3",
+			EngineDir:  "../Engine",
 		},
 	}
 
@@ -86,8 +86,8 @@ func TestHelperMethods(t *testing.T) {
 	if dsn := cfg.Database.DSN(); dsn != "test.db" {
 		t.Errorf("expected DSN test.db, got %s", dsn)
 	}
-	if grpcAddr := cfg.Engine.GrpcAddr(); grpcAddr != "10.0.0.1:50051" {
-		t.Errorf("expected GrpcAddr 10.0.0.1:50051, got %s", grpcAddr)
+	if engineAddr := cfg.Engine.EngineAddr(); engineAddr != "python3:../Engine" {
+		t.Errorf("expected EngineAddr python3:../Engine, got %s", engineAddr)
 	}
 }
 

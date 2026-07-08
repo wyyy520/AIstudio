@@ -23,12 +23,17 @@ func (h *PluginHandler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "success", "data": plugins})
 }
 
-// Get returns a single plugin by name.
+// Get returns a single plugin by name or ID.
 func (h *PluginHandler) Get(c *gin.Context) {
-	p, err := h.svc.Get(c.Param("name"))
+	name := c.Param("name")
+	p, err := h.svc.Get(name)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"code": -1, "message": err.Error()})
-		return
+		// Try by ID
+		p, err = h.svc.GetByID(name)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"code": -1, "message": err.Error()})
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "success", "data": p})
 }
@@ -36,18 +41,46 @@ func (h *PluginHandler) Get(c *gin.Context) {
 // Install installs a new plugin.
 func (h *PluginHandler) Install(c *gin.Context) {
 	var req struct {
-		Name string `json:"name" binding:"required"`
+		ManifestPath string `json:"manifest_path"`
+		Name         string `json:"name"`
+		URL          string `json:"url"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": err.Error()})
 		return
 	}
 
-	if err := h.svc.Install(req.Name); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": err.Error()})
+	var result interface{}
+	var err error
+
+	if req.ManifestPath != "" {
+		result, err = h.svc.Install(req.ManifestPath)
+	} else if req.Name != "" {
+		url := req.URL
+		if url == "" {
+			url = "https://plugins.aistudio.dev/" + req.Name
+		}
+		result, err = h.svc.InstallFromURL(req.Name, url)
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": "manifest_path or name is required"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "plugin installed"})
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": err.Error(), "data": result})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "plugin installed", "data": result})
+}
+
+// Remove removes a plugin.
+func (h *PluginHandler) Remove(c *gin.Context) {
+	name := c.Param("name")
+	if err := h.svc.Remove(name); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": -1, "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "plugin removed"})
 }
 
 // UpdateStatus enables or disables a plugin.
@@ -92,4 +125,67 @@ func (h *PluginHandler) Execute(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "success", "data": result})
+}
+
+// GetPlugins handles GET /api/plugins (returns all plugins).
+func (h *PluginHandler) GetPlugins(c *gin.Context) {
+	plugins := h.svc.List()
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "success", "data": plugins})
+}
+
+// GetPluginByID handles GET /api/plugin/:id (returns a single plugin by ID).
+func (h *PluginHandler) GetPluginByID(c *gin.Context) {
+	id := c.Param("id")
+	p, err := h.svc.GetByID(id)
+	if err != nil {
+		// Try by name
+		p, err = h.svc.Get(id)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"code": -1, "message": err.Error()})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "success", "data": p})
+}
+
+// InstallPlugin handles POST /api/plugin/install.
+func (h *PluginHandler) InstallPlugin(c *gin.Context) {
+	var req struct {
+		ManifestPath string `json:"manifest_path"`
+		Name         string `json:"name" binding:"required"`
+		URL          string `json:"url"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": err.Error()})
+		return
+	}
+
+	url := req.URL
+	if url == "" {
+		url = "https://plugins.aistudio.dev/" + req.Name
+	}
+
+	result, err := h.svc.InstallFromURL(req.Name, url)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": err.Error(), "data": result})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "plugin installed", "data": result})
+}
+
+// RemovePlugin handles POST /api/plugin/remove.
+func (h *PluginHandler) RemovePlugin(c *gin.Context) {
+	var req struct {
+		Name string `json:"name" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": err.Error()})
+		return
+	}
+
+	if err := h.svc.Remove(req.Name); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": -1, "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "plugin removed"})
 }

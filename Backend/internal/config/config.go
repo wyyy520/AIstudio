@@ -58,6 +58,8 @@ type Config struct {
 	Log       LogConfig       `mapstructure:"log" json:"log"`
 	Websocket WebsocketConfig `mapstructure:"websocket" json:"websocket"`
 	Task      TaskConfig      `mapstructure:"task" json:"task"`
+	LLM       LLMConfig       `mapstructure:"llm" json:"llm"`
+	MCP       MCPConfig       `mapstructure:"mcp" json:"mcp"`
 }
 
 // ServerConfig holds HTTP server settings.
@@ -78,10 +80,10 @@ type JWTConfig struct {
 	Expire string `mapstructure:"expire" json:"expire"` // duration string, e.g. "24h"
 }
 
-// EngineConfig holds AI Engine (gRPC) connection settings.
+// EngineConfig holds AI Engine (Python subprocess) settings.
 type EngineConfig struct {
-	Address  string `mapstructure:"address" json:"address"`
-	GrpcPort int    `mapstructure:"grpc_port" json:"grpc_port"`
+	PythonPath string `mapstructure:"python_path" json:"python_path"`
+	EngineDir  string `mapstructure:"engine_dir" json:"engine_dir"`
 }
 
 // PluginConfig holds plugin system settings.
@@ -104,6 +106,21 @@ type TaskConfig struct {
 	NumWorkers int `mapstructure:"num_workers" json:"num_workers"`
 }
 
+// LLMConfig holds LLM provider settings for the AI Agent.
+type LLMConfig struct {
+	Provider string `mapstructure:"provider" json:"provider"` // "openai", "claude", "gemini", "mock"
+	APIKey   string `mapstructure:"api_key" json:"api_key"`
+	BaseURL  string `mapstructure:"base_url" json:"base_url"`
+	Model    string `mapstructure:"model" json:"model"`
+}
+
+// MCPConfig holds MCP (Model Context Protocol) system settings.
+type MCPConfig struct {
+	ConfigPath     string `mapstructure:"config_path" json:"config_path"`         // path to mcp.json
+	AutoConnect    bool   `mapstructure:"auto_connect" json:"auto_connect"`       // auto-connect on startup
+	DefaultTimeout int    `mapstructure:"default_timeout" json:"default_timeout"` // default timeout in ms
+}
+
 // ---------------------------------------------------------------------------
 // Helper Methods
 // ---------------------------------------------------------------------------
@@ -118,9 +135,9 @@ func (c *DatabaseConfig) DSN() string {
 	return c.URL
 }
 
-// GrpcAddr returns the gRPC engine address (host:port).
-func (c *EngineConfig) GrpcAddr() string {
-	return fmt.Sprintf("%s:%d", c.Address, c.GrpcPort)
+// EngineAddr returns the Python engine configuration summary.
+func (c *EngineConfig) EngineAddr() string {
+	return fmt.Sprintf("%s:%s", c.PythonPath, c.EngineDir)
 }
 
 // ---------------------------------------------------------------------------
@@ -149,6 +166,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("websocket.port", "8082")
 
 	v.SetDefault("task.num_workers", 4)
+
+	v.SetDefault("mcp.config_path", "config/mcp.json")
+	v.SetDefault("mcp.auto_connect", true)
+	v.SetDefault("mcp.default_timeout", 30000)
 }
 
 // ---------------------------------------------------------------------------

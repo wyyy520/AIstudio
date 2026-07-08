@@ -6,12 +6,18 @@ import (
 	"sync"
 )
 
+// PythonEngineRunner is the interface for running Python engine tasks.
+// It is implemented by the engine package to avoid circular imports.
+type PythonEngineRunner interface {
+	RunPluginAction(ctx context.Context, taskID, plugin, action string, params map[string]interface{}) (map[string]interface{}, error)
+}
+
 // SimpleExecutor provides a basic plugin execution framework.
-// For now, it looks up the plugin by name and returns a placeholder.
-// Future: integrate with MCP Tool Calling, Python Engine, etc.
+// It dispatches to the Python Engine for Python-based plugins.
 type SimpleExecutor struct {
-	registry *Registry
-	mu       sync.RWMutex
+	registry      *Registry
+	engineRunner  PythonEngineRunner
+	mu            sync.RWMutex
 }
 
 // NewSimpleExecutor creates a new SimpleExecutor.
@@ -21,33 +27,104 @@ func NewSimpleExecutor(registry *Registry) *SimpleExecutor {
 	}
 }
 
+// SetEngineRunner sets the Python engine runner for real execution.
+func (e *SimpleExecutor) SetEngineRunner(runner PythonEngineRunner) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.engineRunner = runner
+}
+
 // Execute runs a plugin by name with the given input.
-// Currently returns a placeholder result.
-// In the future, this will invoke:
-//   - MCP Tool Calling for MCP plugins
-//   - Python Engine for Python-based plugins
-//   - Direct Go execution for native plugins
 func (e *SimpleExecutor) Execute(ctx context.Context, name string, input map[string]interface{}) (map[string]interface{}, error) {
-	plugin, ok := e.registry.Get(name)
+	p, ok := e.registry.Get(name)
 	if !ok {
 		return nil, fmt.Errorf("plugin not found: %s", name)
 	}
 
-	if plugin.Status != StatusEnabled && plugin.Status != StatusInstalled {
-		return nil, fmt.Errorf("plugin %s is not enabled (status: %s)", name, plugin.Status)
+	if !p.Enabled {
+		return nil, fmt.Errorf("plugin %s is disabled", name)
 	}
 
-	// TODO: In future iterations, dispatch to:
-	//   - MCP runtime if plugin is MCP-based
-	//   - Python Engine if plugin has .py entry
-	//   - Native Go executor if plugin is compiled-in
+	// Dispatch to Python Engine if available
+	e.mu.RLock()
+	runner := e.engineRunner
+	e.mu.RUnlock()
 
+	if runner != nil {
+		action := "execute"
+		taskID := fmt.Sprintf("plugin-%s-%d", name, ctx.Value("request_id"))
+		if taskID == "" {
+			taskID = fmt.Sprintf("plugin-%s", name)
+		}
+
+		result, err := runner.RunPluginAction(ctx, taskID, name, action, input)
+		if err != nil {
+			return nil, fmt.Errorf("plugin %s execution failed: %w", name, err)
+		}
+		return result, nil
+	}
+
+	// Fallback: mock execution
 	result := map[string]interface{}{
-		"plugin":  name,
-		"version": plugin.Version,
+		"plugin":     name,
+		"version":    p.Version,
+		"type":       string(p.Type),
+		"status":     "executed",
+		"input":      input,
+		"node_count": len(p.Nodes),
+		"output":     fmt.Sprintf("Plugin %s executed successfully (mock)", name),
+	}
+
+	return result, nil
+}
+
+// ExecuteNode runs a specific node from a plugin.
+func (e *SimpleExecutor) ExecuteNode(ctx context.Context, pluginName, nodeType string, input map[string]interface{}) (map[string]interface{}, error) {
+	p, ok := e.registry.Get(pluginName)
+	if !ok {
+		return nil, fmt.Errorf("plugin not found: %s", pluginName)
+	}
+
+	if !p.Enabled {
+		return nil, fmt.Errorf("plugin %s is disabled", pluginName)
+	}
+
+	// Find the node type
+	var nodeReg *NodeRegistration
+	for i := range p.Nodes {
+		if p.Nodes[i].Type == nodeType {
+			nodeReg = &p.Nodes[i]
+			break
+		}
+	}
+
+	if nodeReg == nil {
+		return nil, fmt.Errorf("node type %s not found in plugin %s", nodeType, pluginName)
+	}
+
+	// Dispatch to Python Engine if available
+	e.mu.RLock()
+	runner := e.engineRunner
+	e.mu.RUnlock()
+
+	if runner != nil {
+		action := nodeType
+		taskID := fmt.Sprintf("plugin-%s-%s", pluginName, nodeType)
+		result, err := runner.RunPluginAction(ctx, taskID, pluginName, action, input)
+		if err != nil {
+			return nil, fmt.Errorf("plugin node %s/%s execution failed: %w", pluginName, nodeType, err)
+		}
+		return result, nil
+	}
+
+	// Fallback: mock execution
+	result := map[string]interface{}{
+		"plugin":  pluginName,
+		"node":    nodeType,
+		"version": p.Version,
 		"status":  "executed",
 		"input":   input,
-		"output":  "Plugin execution not yet implemented. This is a placeholder.",
+		"output":  fmt.Sprintf("Plugin %s node %s executed successfully (mock)", pluginName, nodeType),
 	}
 
 	return result, nil
@@ -55,9 +132,5 @@ func (e *SimpleExecutor) Execute(ctx context.Context, name string, input map[str
 
 // SetPluginStatus updates a plugin's enabled/disabled status.
 func (e *SimpleExecutor) SetPluginStatus(name string, enabled bool) error {
-	status := StatusEnabled
-	if !enabled {
-		status = StatusDisabled
-	}
-	return e.registry.UpdateStatus(name, status)
+	return e.registry.UpdateEnabled(name, enabled)
 }

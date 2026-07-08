@@ -52,6 +52,9 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useProjectStore } from '@/store/project'
+
 interface RecentProject {
   id: string
   name: string
@@ -59,33 +62,27 @@ interface RecentProject {
   icon: string
 }
 
-const projects: RecentProject[] = [
-  {
-    id: 'wf_001',
-    name: '车辆检测工作流',
-    time: '今天 10:30',
-    // Lucide: workflow
+const projectStore = useProjectStore()
+
+const projects = computed<RecentProject[]>(() => {
+  return projectStore.sortedProjects.slice(0, 5).map(p => ({
+    id: p.id,
+    name: p.name,
+    time: formatTime(p.updatedAt),
     icon: 'M6 3h3v6H6V3zm0 12h3v6H6v-6zm9-12h3v6h-3V3zm0 12h3v6h-3v-6zm-9 0V9m3 9v-3m3 3v-3m3 3V9',
-  },
-  {
-    id: 'wf_002',
-    name: '图像分类演示',
-    time: '昨天',
-    icon: 'M6 3h3v6H6V3zm0 12h3v6H6v-6zm9-12h3v6h-3V3zm0 12h3v6h-3v-6zm-9 0V9m3 9v-3m3 3v-3m3 3V9',
-  },
-  {
-    id: 'wf_003',
-    name: 'LLM 对话工作流',
-    time: '3 天前',
-    icon: 'M6 3h3v6H6V3zm0 12h3v6H6v-6zm9-12h3v6h-3V3zm0 12h3v6h-3v-6zm-9 0V9m3 9v-3m3 3v-3m3 3V9',
-  },
-  {
-    id: 'wf_004',
-    name: '批量图像处理',
-    time: '上周',
-    icon: 'M6 3h3v6H6V3zm0 12h3v6H6v-6zm9-12h3v6h-3V3zm0 12h3v6h-3v-6zm-9 0V9m3 9v-3m3 3v-3m3 3V9',
-  },
-]
+  }))
+})
+
+function formatTime(dateStr: string): string {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  if (days === 0) return '今天'
+  if (days === 1) return '昨天'
+  if (days < 7) return `${days} 天前`
+  return date.toLocaleDateString('zh-CN')
+}
 
 const emit = defineEmits<{
   'open-project': [id: string]

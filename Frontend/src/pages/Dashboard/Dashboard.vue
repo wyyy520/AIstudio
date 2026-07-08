@@ -22,13 +22,20 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useProjectStore } from '@/store/project'
 import QuickStartCard from './components/QuickStartCard.vue'
 import RecentProjects from './components/RecentProjects.vue'
 import SystemStatus from './components/SystemStatus.vue'
 import AnnouncementCard from './components/AnnouncementCard.vue'
 
 const router = useRouter()
+const projectStore = useProjectStore()
+
+onMounted(() => {
+  projectStore.fetchProjects()
+})
 
 function handleQuickAction(key: string): void {
   switch (key) {

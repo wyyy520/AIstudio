@@ -88,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { usePluginStore } from '@/store/plugin'
 import type { PluginCategory } from './types'
 import PluginSidebar from '@/components/plugin/PluginSidebar.vue'
@@ -98,6 +98,10 @@ import PluginSearch from '@/components/plugin/PluginSearch.vue'
 import PluginInstallTask from '@/components/plugin/PluginInstallTask.vue'
 
 const store = usePluginStore()
+
+onMounted(() => {
+  store.fetchPlugins()
+})
 
 const categoryLabels: Record<PluginCategory | 'all', string> = {
   all: 'All Plugins',

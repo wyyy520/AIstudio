@@ -44,6 +44,7 @@ func setupTestRouter() *gin.Engine {
 
 	// Register workflow/agent task handlers
 	workflowTaskHandler := workflow.NewTaskHandler(engine)
+	workflowTaskHandler.SetTaskManager(taskMgr)
 	taskMgr.RegisterHandler("workflow", workflowTaskHandler)
 	taskMgr.RegisterHandler("agent", workflowTaskHandler)
 

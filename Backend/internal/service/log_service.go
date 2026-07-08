@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 )
@@ -172,7 +173,7 @@ func (s *LogService) Query(q LogQuery) (*LogQueryResult, error) {
 		if q.TaskID != "" && entry.TaskID != q.TaskID {
 			continue
 		}
-		if q.Keyword != "" && !containsSubstring(toLower(entry.Message), toLower(q.Keyword)) {
+		if q.Keyword != "" && !strings.Contains(strings.ToLower(entry.Message), strings.ToLower(q.Keyword)) {
 			continue
 		}
 		if !startTime.IsZero() && entry.Timestamp.Before(startTime) {

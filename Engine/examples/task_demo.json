@@ -1,0 +1,16 @@
+{
+  "task_id": "demo-task-001",
+  "plugin": "yolo",
+  "action": "train",
+  "params": {
+    "dataset": "Storage/examples/coco128",
+    "model": "yolov8n.pt",
+    "epochs": 5,
+    "batch": 8,
+    "img_size": 640,
+    "device": "cpu",
+    "output_dir": "Storage/models/yolo_demo",
+    "project_name": "demo_project",
+    "workflow_id": "demo-wf-001"
+  }
+}

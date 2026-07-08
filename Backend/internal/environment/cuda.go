@@ -25,6 +25,7 @@ func getCUDAToolkitVersion() string {
 	return ""
 }
 
+// DetectCUDA runs a full CUDA/GPU detection.
 func DetectCUDA() CUDAInfo {
 	info := CUDAInfo{
 		GPUs: []GPUInfo{},
@@ -34,8 +35,10 @@ func DetectCUDA() CUDAInfo {
 		return info
 	}
 
-	info.CUDA = getCUDAToolkitVersion()
+	info.Available = true
+	info.Version = getCUDAToolkitVersion()
 
+	// Query GPU details
 	gpuCmd := exec.Command("nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader")
 	gpuOutput, err := gpuCmd.Output()
 	if err == nil {
@@ -52,4 +55,24 @@ func DetectCUDA() CUDAInfo {
 	}
 
 	return info
+}
+
+// DetectGPUCount returns the number of available GPUs.
+func DetectGPUCount() int {
+	info := DetectCUDA()
+	return len(info.GPUs)
+}
+
+// DetectGPUMemory returns the total GPU memory in MiB as a string.
+func DetectGPUMemory(index int) string {
+	info := DetectCUDA()
+	if index < len(info.GPUs) {
+		return info.GPUs[index].Memory
+	}
+	return ""
+}
+
+// HasCUDA checks if CUDA is available at all.
+func HasCUDA() bool {
+	return nvidiaSmiAvailable()
 }

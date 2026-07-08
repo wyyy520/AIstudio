@@ -53,8 +53,24 @@ func (h *TaskHandler) Create(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"code":    0,
-		"message": "task submitted",
-		"data":    gin.H{"taskId": taskID},
+		"message": "task created",
+		"data":    gin.H{"task_id": taskID},
+	})
+}
+
+// GetStatus returns the status of a task by ID.
+// GET /api/task/:id/status
+func (h *TaskHandler) GetStatus(c *gin.Context) {
+	statusResp, err := h.svc.GetStatus(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"code": -1, "message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    0,
+		"message": "success",
+		"data":    statusResp,
 	})
 }
 

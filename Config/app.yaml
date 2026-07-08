@@ -1,0 +1,46 @@
+# =============================================================================
+# AIStudio - Application Configuration
+# =============================================================================
+# This file contains the top-level application settings shared across all
+# modules (Frontend, Backend, Engine, Plugin).
+# =============================================================================
+
+app:
+  name: "AIStudio"
+  version: "1.0.0"
+  environment: "development"  # development, staging, production
+  log_level: "info"
+
+paths:
+  root: "."
+  backend_dir: "Backend"
+  frontend_dir: "Frontend"
+  engine_dir: "Engine"
+  plugins_dir: "Plugins"
+  storage_dir: "Storage"
+  config_dir: "Config"
+  data_dir: "Storage/data"
+  models_dir: "Storage/models"
+  logs_dir: "Storage/logs"
+
+launcher:
+  startup_timeout: 30    # seconds
+  shutdown_timeout: 10   # seconds
+  health_check_interval: 5  # seconds
+  auto_restart: true
+  max_restart_attempts: 3
+
+backend:
+  host: "0.0.0.0"
+  port: "8081"
+
+engine:
+  python_path: "python"
+  engine_dir: "Engine"
+  runner_script: "Engine/runner.py"
+  venv_path: "Engine/venv"
+  port: "8082"
+
+frontend:
+  path: "Frontend/dist/index.html"
+  backend_addr: "http://localhost:8081"

@@ -1,0 +1,26 @@
+# =============================================================================
+# AIStudio - Plugin Configuration
+# =============================================================================
+# This file configures the plugin system and available plugin registrations.
+# =============================================================================
+
+plugin:
+  directory: "Plugins"
+  auto_discover: true
+  discovery_paths:
+    - "Plugins/Vision"
+    - "Plugins/NLP"
+    - "Plugins/Tabular"
+    - "Plugins/Custom"
+  allow_upload: true
+  max_plugin_size: "500MB"
+
+registry:
+  cache_enabled: true
+  cache_ttl: 300  # seconds
+
+execution:
+  sandbox: true
+  timeout: 1800  # seconds
+  max_retries: 2
+  log_level: "info"

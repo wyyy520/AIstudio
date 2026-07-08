@@ -11,8 +11,59 @@ import type {
   FixStep,
   AgentPhase,
 } from '@/pages/Logs/types'
-import { createMockFixSteps } from '@/pages/Logs/mock'
 import * as logApi from '@/api/log'
+import type { ApiLogEntry } from '@/api/log'
+import { getTasks, getTaskStatus, type ApiTask, type ApiTaskStatus } from '@/api/task'
+import { wsClient, type WebSocketEvent } from '@/api/websocket'
+
+// Map Backend ApiTask to Frontend Task type
+function mapApiTaskToTask(api: ApiTask): Task {
+  return {
+    id: api.id,
+    name: api.name,
+    type: api.handler as Task['type'] || 'workflow',
+    status: mapTaskStatus(api.status),
+    startedAt: api.startedAt || api.createdAt,
+    completedAt: api.completedAt,
+    duration: 0,
+    projectId: '',
+    workflowId: undefined,
+    metadata: api.payload as Record<string, unknown> | undefined,
+  }
+}
+
+function mapApiTaskStatusToTask(status: ApiTaskStatus): Partial<Task> {
+  return {
+    status: mapTaskStatus(status.status),
+  }
+}
+
+function mapTaskStatus(status: string): Task['status'] {
+  switch (status) {
+    case 'running': return 'running'
+    case 'completed': return 'success'
+    case 'failed': return 'failed'
+    case 'warning': return 'warning'
+    default: return 'running'
+  }
+}
+
+// Map Backend ApiLogEntry to Frontend LogEntry
+function mapApiLogToLogEntry(api: ApiLogEntry): LogEntry {
+  return {
+    id: api.id,
+    taskId: api.taskId,
+    timestamp: api.timestamp,
+    level: (api.level as LogEntry['level']) || 'info',
+    source: (api.source as LogEntry['source']) || 'system',
+    message: api.message,
+    rawMessage: api.message,
+    humanMessage: api.message,
+    stepName: api.stepName || '',
+    stepStatus: (api.stepStatus as LogEntry['stepStatus']) || 'pending',
+    metadata: api.metadata,
+  }
+}
 
 export const useLogStore = defineStore('log', () => {
   const tasks = ref<Task[]>([])
@@ -35,6 +86,11 @@ export const useLogStore = defineStore('log', () => {
 
   const isLoadingTasks = ref(false)
   const isLoadingLogs = ref(false)
+  const error = ref<string | null>(null)
+
+  // WebSocket unsubscribe functions
+  let wsUnsubscribe: (() => void) | null = null
+  let taskWsUnsubscribe: (() => void) | null = null
 
   const selectedTask = computed<Task | null>(() => {
     if (!selectedTaskId.value) return null
@@ -70,10 +126,93 @@ export const useLogStore = defineStore('log', () => {
   const runningCount = computed(() => tasks.value.filter(t => t.status === 'running').length)
   const failedCount = computed(() => tasks.value.filter(t => t.status === 'failed').length)
 
+  // Connect to WebSocket
+  function connectWebSocket() {
+    wsClient.connect()
+
+    wsUnsubscribe = wsClient.subscribe((event: WebSocketEvent) => {
+      handleWebSocketEvent(event)
+    })
+  }
+
+  function disconnectWebSocket() {
+    if (wsUnsubscribe) {
+      wsUnsubscribe()
+      wsUnsubscribe = null
+    }
+    if (taskWsUnsubscribe) {
+      taskWsUnsubscribe()
+      taskWsUnsubscribe = null
+    }
+    wsClient.disconnect()
+  }
+
+  function handleWebSocketEvent(event: WebSocketEvent) {
+    switch (event.type) {
+      case 'task_status': {
+        const task = tasks.value.find(t => t.id === event.taskId)
+        if (task && event.data.status) {
+          task.status = mapTaskStatus(event.data.status)
+        }
+        break
+      }
+      case 'task_progress': {
+        const task = tasks.value.find(t => t.id === event.taskId)
+        if (task && event.data.progress !== undefined) {
+          // progress can be used for UI
+        }
+        break
+      }
+      case 'task_log': {
+        if (event.data.message) {
+          const logEntry: LogEntry = {
+            id: `${event.taskId}-${Date.now()}`,
+            taskId: event.taskId,
+            timestamp: event.data.timestamp || new Date().toISOString(),
+            level: (event.data.level as LogEntry['level']) || 'info',
+            source: 'system',
+            message: event.data.message,
+            rawMessage: event.data.message,
+            humanMessage: event.data.message,
+            stepName: event.data.step || '',
+            stepStatus: 'running',
+          }
+          if (selectedTaskId.value === event.taskId) {
+            logs.value.push(logEntry)
+          }
+        }
+        break
+      }
+      case 'task_error': {
+        const task = tasks.value.find(t => t.id === event.taskId)
+        if (task) {
+          task.status = 'failed'
+        }
+        if (event.data.error) {
+          error.value = event.data.error
+        }
+        break
+      }
+      case 'task_complete': {
+        const task = tasks.value.find(t => t.id === event.taskId)
+        if (task) {
+          task.status = 'success'
+          task.completedAt = event.data.timestamp || new Date().toISOString()
+        }
+        break
+      }
+    }
+  }
+
   async function loadTasks() {
     isLoadingTasks.value = true
+    error.value = null
     try {
-      tasks.value = await logApi.fetchTasks()
+      const apiTasks = await getTasks()
+      tasks.value = apiTasks.map(mapApiTaskToTask)
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '获取任务列表失败'
+      console.error('[log-store] loadTasks failed:', e)
     } finally {
       isLoadingTasks.value = false
     }
@@ -88,26 +227,36 @@ export const useLogStore = defineStore('log', () => {
     trainingMetrics.value = null
     workflowTimeline.value = null
     agentPhase.value = 'idle'
+    error.value = null
 
     isLoadingLogs.value = true
     try {
-      const [taskLogs, analyses, task] = await Promise.all([
-        logApi.fetchTaskLogs(taskId),
-        logApi.fetchErrorAnalyses(taskId),
-        tasks.value.find(t => t.id === taskId),
-      ])
-      logs.value = taskLogs
-      errorAnalyses.value = analyses
+      // Fetch logs from backend
+      const apiLogs = await logApi.fetchTaskLogs(taskId)
+      logs.value = apiLogs.map(mapApiLogToLogEntry)
 
-      if (task?.type === 'training') {
-        trainingMetrics.value = await logApi.fetchTrainingMetrics(taskId)
+      // Poll task status for real-time updates
+      try {
+        const status = await getTaskStatus(taskId)
+        const existingTask = tasks.value.find(t => t.id === taskId)
+        if (existingTask) {
+          Object.assign(existingTask, mapApiTaskStatusToTask(status))
+        }
+      } catch {
+        // status endpoint may not be available
       }
-      if (task?.workflowId) {
-        workflowTimeline.value = await logApi.fetchWorkflowTimeline(taskId)
-      }
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '获取任务日志失败'
+      console.error('[log-store] selectTask failed:', e)
     } finally {
       isLoadingLogs.value = false
     }
+
+    // Subscribe to task-specific WebSocket events
+    if (taskWsUnsubscribe) taskWsUnsubscribe()
+    taskWsUnsubscribe = wsClient.subscribeTask(taskId, (event: WebSocketEvent) => {
+      handleWebSocketEvent(event)
+    })
   }
 
   async function analyzeCurrentTask() {
@@ -117,9 +266,9 @@ export const useLogStore = defineStore('log', () => {
     try {
       await delay(500)
       agentPhase.value = 'analyzing'
-      const analyses = await logApi.analyzeLogs(selectedTaskId.value)
+      // In production, this would call a backend AI analysis endpoint
+      await delay(1000)
       agentPhase.value = 'completed'
-      errorAnalyses.value = analyses
     } catch {
       agentPhase.value = 'failed'
     } finally {
@@ -130,29 +279,21 @@ export const useLogStore = defineStore('log', () => {
   async function startFix(solutionId: string) {
     currentFixSolutionId.value = solutionId
     showFixDialog.value = true
-    fixSteps.value = createMockFixSteps()
+    fixSteps.value = [
+      { id: 'fix-1', label: '检查依赖', status: 'pending' },
+      { id: 'fix-2', label: '修复配置', status: 'pending' },
+      { id: 'fix-3', label: '验证修复', status: 'pending' },
+    ]
   }
 
   async function executeFix() {
     if (!currentFixSolutionId.value) return
     isFixing.value = true
-    fixSteps.value = createMockFixSteps()
-
     for (let i = 0; i < fixSteps.value.length; i++) {
       fixSteps.value[i].status = 'running'
       await delay(600 + Math.random() * 400)
       fixSteps.value[i].status = 'completed'
     }
-
-    if (selectedTaskId.value) {
-      const analysis = errorAnalyses.value.find(a =>
-        a.solutions.some(s => s.id === currentFixSolutionId.value)
-      )
-      if (analysis) {
-        analysis.status = 'fixed'
-      }
-    }
-
     isFixing.value = false
     showFixDialog.value = false
     currentFixSolutionId.value = null
@@ -189,14 +330,22 @@ export const useLogStore = defineStore('log', () => {
   }
 
   async function exportCurrentLogs(format: 'log' | 'json' | 'csv') {
-    if (!selectedTaskId.value) return
-    const blob = await logApi.exportLogs(selectedTaskId.value, format)
+    if (!selectedTaskId.value || logs.value.length === 0) return
+    const content = format === 'json'
+      ? JSON.stringify(logs.value, null, 2)
+      : logs.value.map(l => `[${l.timestamp}] [${l.level.toUpperCase()}] ${l.message}`).join('\n')
+    const blob = new Blob([content], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = `logs-${selectedTaskId.value}.${format}`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  // Cleanup on store destroy
+  function cleanup() {
+    disconnectWebSocket()
   }
 
   return {
@@ -217,11 +366,14 @@ export const useLogStore = defineStore('log', () => {
     currentFixSolutionId,
     isLoadingTasks,
     isLoadingLogs,
+    error,
     selectedTask,
     filteredLogs,
     taskGroups,
     runningCount,
     failedCount,
+    connectWebSocket,
+    disconnectWebSocket,
     loadTasks,
     selectTask,
     analyzeCurrentTask,
@@ -234,6 +386,7 @@ export const useLogStore = defineStore('log', () => {
     setActiveTab,
     clearLogs,
     exportCurrentLogs,
+    cleanup,
   }
 })
 

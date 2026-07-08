@@ -118,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useLogStore } from '@/store/log'
 import LogToolbar from '@/components/logs/LogToolbar.vue'
 import TaskList from '@/components/logs/TaskList.vue'
@@ -163,7 +163,14 @@ function handleGenerateCommand(analysis: ErrorAnalysis) {
   }
 }
 
-store.loadTasks()
+onMounted(() => {
+  store.loadTasks()
+  store.connectWebSocket()
+})
+
+onUnmounted(() => {
+  store.disconnectWebSocket()
+})
 </script>
 
 <style scoped>

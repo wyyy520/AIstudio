@@ -51,8 +51,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef } from 'vue'
+import { ref, shallowRef, onMounted } from 'vue'
 import type { Node, Edge } from '@vue-flow/core'
+import { useWorkflowStore } from '@/store/workflow'
+import type { WorkflowNode, WorkflowEdge, WorkflowDefinition } from '@/store/workflow'
 import WorkflowToolbar from './WorkflowToolbar.vue'
 import NodePanel from './NodePanel.vue'
 import FlowCanvas from './FlowCanvas.vue'
@@ -81,6 +83,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const flowCanvasRef = ref<InstanceType<typeof FlowCanvas>>()
+const workflowStore = useWorkflowStore()
 const workflowId = ref(props.workflowId)
 const workflowName = ref(props.workflowName)
 const selectedNode = shallowRef<Node | null>(null)
@@ -195,7 +198,40 @@ function handleConnectionError(error: ValidationError): void {
 
 // ===== 工作流操作 =====
 
-function handleSave(): void {
+function toStoreDefinition(): WorkflowDefinition {
+  const workflowNodes: WorkflowNode[] = nodes.value.map(n => ({
+    id: n.id,
+    type: n.data?.nodeType || 'unknown',
+    name: n.data?.label || n.id,
+    plugin: n.data?.templateKey || 'unknown',
+    description: n.data?.description || '',
+    inputs: (n.data?.inputs || []).map((i: { name: string; type: string; required: boolean }) => ({
+      name: i.name,
+      type: i.type,
+      required: i.required,
+    })),
+    outputs: (n.data?.outputs || []).map((o: { name: string; type: string }) => ({
+      name: o.name,
+      type: o.type,
+    })),
+    x: n.position.x,
+    y: n.position.y,
+    config: n.data?.params || {},
+  }))
+
+  const workflowEdges: WorkflowEdge[] = edges.value.map(e => ({
+    id: e.id,
+    source: e.source,
+    target: e.target,
+    sourceHandle: e.sourceHandle || '',
+    targetHandle: e.targetHandle || '',
+  }))
+
+  return { nodes: workflowNodes, edges: workflowEdges }
+}
+
+async function handleSave(): Promise<void> {
+  const definition = toStoreDefinition()
   const json = toWorkflowJSON(
     workflowId.value || 'workflow_1',
     workflowName.value,
@@ -203,9 +239,16 @@ function handleSave(): void {
     nodes.value,
     edges.value,
   )
-  console.log('Save workflow:', json)
-  // Mock: 保存到 localStorage
-  localStorage.setItem(`workflow_${workflowId.value}`, JSON.stringify(json))
+
+  if (workflowId.value) {
+    const success = await workflowStore.saveWorkflow(workflowId.value, definition)
+    if (!success) {
+      validationErrors.value = [{ nodeId: '', message: workflowStore.error || '保存失败' }]
+    }
+  } else {
+    console.log('Save workflow (no id):', json)
+    localStorage.setItem(`workflow_draft`, JSON.stringify(json))
+  }
 }
 
 function handleExportJSON(): void {
@@ -237,22 +280,36 @@ async function handleRun(): Promise<void> {
     return
   }
 
-  isRunning.value = true
-  validationErrors.value = []
-
   if (!nodes.value.length) return
 
-  // Mock 模拟运行：按拓扑顺序依次点亮节点
-  const sortedIds = topologicalSort(nodes.value, edges.value)
-  for (const nodeId of sortedIds) {
-    const node = nodes.value.find(n => n.id === nodeId)
-    if (!node) continue
-    node.data.status = 'running'
-    await new Promise(resolve => setTimeout(resolve, 600))
-    node.data.status = 'success'
-    await new Promise(resolve => setTimeout(resolve, 150))
+  // Save first, then run
+  if (workflowId.value) {
+    await handleSave()
+    isRunning.value = true
+    validationErrors.value = []
+
+    const taskId = await workflowStore.runWorkflow(workflowId.value)
+    if (!taskId) {
+      validationErrors.value = [{ nodeId: '', message: workflowStore.error || '运行失败' }]
+      isRunning.value = false
+    }
+    // isRunning will be set to false by WebSocket event or polling
+  } else {
+    // Mock for new/unsaved workflows
+    isRunning.value = true
+    validationErrors.value = []
+
+    const sortedIds = topologicalSort(nodes.value, edges.value)
+    for (const nodeId of sortedIds) {
+      const node = nodes.value.find(n => n.id === nodeId)
+      if (!node) continue
+      node.data.status = 'running'
+      await new Promise(resolve => setTimeout(resolve, 600))
+      node.data.status = 'success'
+      await new Promise(resolve => setTimeout(resolve, 150))
+    }
+    isRunning.value = false
   }
-  isRunning.value = false
 }
 
 function handlePause(): void {

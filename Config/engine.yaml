@@ -1,0 +1,33 @@
+# =============================================================================
+# AIStudio - Engine Configuration
+# =============================================================================
+# This file configures the Python AI Engine and its runtime environment.
+# =============================================================================
+
+engine:
+  python_path: "python"
+  python_version: "3.9"
+  engine_dir: "Engine"
+  runner_script: "Engine/runner.py"
+  venv_path: "Engine/venv"
+  timeout: 3600  # seconds (max task execution time)
+
+plugins:
+  vision:
+    yolo:
+      enabled: true
+      entry: "Plugins/Vision/YOLO/train.py"
+      default_model: "yolov8n.pt"
+      device: "cuda"  # "cuda", "cpu", "mps"
+  nlp:
+    enabled: true
+  tabular:
+    enabled: true
+
+runtime:
+  gpu_support: true
+  memory_limit: "8Gi"
+  cpu_limit: "4"
+  env_vars:
+    PYTHONUNBUFFERED: "1"
+    TF_CPP_MIN_LOG_LEVEL: "2"

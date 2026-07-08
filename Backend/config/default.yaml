@@ -24,10 +24,10 @@ jwt:
   secret: "aistudio-default-secret-change-in-production"
   expire: "24h"         # token expiration duration
 
-# -- AI Engine (gRPC) ---------------------------------------------------------
+# -- AI Engine (Python subprocess) --------------------------------------------
 engine:
-  address: "localhost"
-  grpc_port: 50051
+  python_path: "python"         # Path to Python executable
+  engine_dir: "../Engine"       # Path to the Engine directory
 
 # -- Plugin System ------------------------------------------------------------
 plugin:

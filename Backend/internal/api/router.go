@@ -19,7 +19,7 @@ func SetupRouter(svc *service.Services, mwCfg middleware.Config) *gin.Engine {
 	middleware.Apply(r, mwCfg)
 
 	// ---- Health ----
-	healthHandler := handlers.NewHealthHandler()
+	healthHandler := handlers.NewHealthHandler(svc)
 	r.GET("/api/health", healthHandler.Check)
 
 	// ---- Auth (login is public) ----
@@ -50,6 +50,7 @@ func SetupRouter(svc *service.Services, mwCfg middleware.Config) *gin.Engine {
 
 	// ---- Workflows ----
 	workflowHandler := handlers.NewWorkflowHandler(svc.Workflow)
+	workflowHandler.SetTaskService(svc.Task)
 	workflows := r.Group("/api/workflows")
 	{
 		workflows.GET("", workflowHandler.List)
@@ -65,6 +66,10 @@ func SetupRouter(svc *service.Services, mwCfg middleware.Config) *gin.Engine {
 
 	// ---- Tasks ----
 	taskHandler := handlers.NewTaskHandler(svc.Task)
+	// POST /api/task/create
+	r.POST("/api/task/create", taskHandler.Create)
+	// GET /api/task/:id/status
+	r.GET("/api/task/:id/status", taskHandler.GetStatus)
 	tasks := r.Group("/api/tasks")
 	{
 		tasks.GET("", taskHandler.List)
@@ -77,6 +82,14 @@ func SetupRouter(svc *service.Services, mwCfg middleware.Config) *gin.Engine {
 
 	// ---- Plugins ----
 	pluginHandler := handlers.NewPluginHandler(svc.Plugin)
+	// GET /api/plugins - list all plugins
+	r.GET("/api/plugins", pluginHandler.GetPlugins)
+	// POST /api/plugin/install - install a plugin
+	r.POST("/api/plugin/install", pluginHandler.InstallPlugin)
+	// POST /api/plugin/remove - remove a plugin
+	r.POST("/api/plugin/remove", pluginHandler.RemovePlugin)
+	// GET /api/plugin/:id - get plugin details
+	r.GET("/api/plugin/:id", pluginHandler.GetPluginByID)
 	plugins := r.Group("/api/plugins")
 	{
 		plugins.GET("", pluginHandler.List)
@@ -92,6 +105,22 @@ func SetupRouter(svc *service.Services, mwCfg middleware.Config) *gin.Engine {
 	agent := r.Group("/api/agent")
 	{
 		agent.POST("/chat", agentHandler.Chat)
+		agent.POST("/plan", agentHandler.PlanOnly)
+	}
+
+	// ---- MCP ----
+	mcpHandler := handlers.NewMCPHandler(svc.MCP)
+	mcpGroup := r.Group("/api/mcp")
+	{
+		mcpGroup.GET("/tools", mcpHandler.ListTools)
+		mcpGroup.GET("/servers", mcpHandler.ListServers)
+		mcpGroup.GET("/status", mcpHandler.GetStatus)
+		mcpGroup.GET("/config", mcpHandler.ExportConfig)
+		mcpGroup.POST("/connect", mcpHandler.Connect)
+		mcpGroup.POST("/disconnect", mcpHandler.Disconnect)
+		mcpGroup.POST("/call", mcpHandler.Call)
+		mcpGroup.POST("/servers", mcpHandler.AddServer)
+		mcpGroup.DELETE("/servers/:name", mcpHandler.RemoveServer)
 	}
 
 	// ---- Logs ----
@@ -106,7 +135,19 @@ func SetupRouter(svc *service.Services, mwCfg middleware.Config) *gin.Engine {
 	environment := r.Group("/api/environment")
 	{
 		environment.GET("/status", envHandler.GetStatus)
+		environment.POST("/check", envHandler.Check)
+		environment.GET("/repair-plan", envHandler.GetRepairPlan)
+		environment.POST("/repair", envHandler.Repair)
+		environment.POST("/install", envHandler.InstallDependency)
+		environment.GET("/logs", envHandler.GetLogs)
+		environment.DELETE("/logs", envHandler.ClearLogs)
 	}
+
+	// ---- WebSocket ----
+	wsHandler := handlers.NewWebSocketHandler(svc.Task)
+	r.GET("/api/ws", func(c *gin.Context) {
+		wsHandler.HandleWebSocket(c.Writer, c.Request)
+	})
 
 	return r
 }

@@ -101,7 +101,7 @@ func TestFileLoader(t *testing.T) {
 
 func TestSimpleExecutor(t *testing.T) {
 	r := NewRegistry()
-	r.Register(&Plugin{Name: "exec-plugin", Version: "1.0", Description: "exec test", Entry: "main.py", Status: StatusEnabled})
+	r.Register(&Plugin{Name: "exec-plugin", Version: "1.0", Description: "exec test", Entry: "main.py", Status: StatusInstalled, Enabled: true})
 
 	e := NewSimpleExecutor(r)
 
@@ -118,6 +118,13 @@ func TestSimpleExecutor(t *testing.T) {
 	_, err = e.Execute(context.Background(), "nonexistent", nil)
 	if err == nil {
 		t.Fatal("expected error for nonexistent plugin")
+	}
+
+	// Execute disabled plugin
+	r.Register(&Plugin{Name: "disabled-plugin", Version: "1.0", Status: StatusInstalled, Enabled: false})
+	_, err = e.Execute(context.Background(), "disabled-plugin", nil)
+	if err == nil {
+		t.Fatal("expected error for disabled plugin")
 	}
 }
 
@@ -144,15 +151,15 @@ func TestManager(t *testing.T) {
 		t.Fatalf("EnablePlugin() failed: %v", err)
 	}
 	p, _ := m.GetPlugin("test-p")
-	if p.Status != StatusEnabled {
-		t.Errorf("expected enabled, got %s", p.Status)
+	if !p.Enabled {
+		t.Errorf("expected enabled=true, got %v", p.Enabled)
 	}
 
 	if err := m.DisablePlugin("test-p"); err != nil {
 		t.Fatalf("DisablePlugin() failed: %v", err)
 	}
 	p, _ = m.GetPlugin("test-p")
-	if p.Status != StatusDisabled {
-		t.Errorf("expected disabled, got %s", p.Status)
+	if p.Enabled {
+		t.Errorf("expected enabled=false, got %v", p.Enabled)
 	}
 }

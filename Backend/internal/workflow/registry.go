@@ -69,7 +69,24 @@ func (r *NodeRegistry) CreateExecutable(nodeType, plugin string) (ExecutableNode
 	if !ok {
 		return nil, fmt.Errorf("node type %q with plugin %q is not registered", nodeType, plugin)
 	}
-	return def.Factory(), nil
+	node := def.Factory()
+	return node, nil
+}
+
+// SetMCPRuntime sets the MCP runtime on all MCP nodes in the registry.
+// This must be called after RegisterDefaultNodes.
+func (r *NodeRegistry) SetMCPRuntime(runtime MCPRuntime) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for k, def := range r.nodes {
+		if def.Type == NodeTypeMCP {
+			// Re-register with a factory that injects the runtime
+			def.Factory = func() ExecutableNode {
+				return &MCPNode{MCPRuntime: runtime}
+			}
+			r.nodes[k] = def
+		}
+	}
 }
 
 var DefaultRegistry = NewNodeRegistry()
