@@ -80,7 +80,7 @@ func TestCRUD(t *testing.T) {
 	database := GetDB()
 
 	// Create
-	user := models.User{Username: "testuser", Email: "test@example.com", Password: "secret"}
+	user := models.User{Username: "testuser", Email: "test@example.com", PasswordHash: "secret"}
 	if err := database.Create(&user).Error; err != nil {
 		t.Fatalf("Create user failed: %v", err)
 	}

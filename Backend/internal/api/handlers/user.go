@@ -2,24 +2,22 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
-	"github.com/aistudio/backend/internal/service"
+	"github.com/aistudio/backend/internal/auth"
 	"github.com/gin-gonic/gin"
 )
 
-// UserHandler handles user CRUD operations via the service layer.
 type UserHandler struct {
-	svc *service.UserService
+	auth *auth.Authenticator
 }
 
-// NewUserHandler creates a new UserHandler.
-func NewUserHandler(svc *service.UserService) *UserHandler {
-	return &UserHandler{svc: svc}
+func NewUserHandler(auth *auth.Authenticator) *UserHandler {
+	return &UserHandler{auth: auth}
 }
 
-// List returns all users.
 func (h *UserHandler) List(c *gin.Context) {
-	users, err := h.svc.List()
+	users, err := h.auth.Users().List()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "message": err.Error()})
 		return
@@ -27,9 +25,14 @@ func (h *UserHandler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "success", "data": users})
 }
 
-// Get returns a single user by ID.
 func (h *UserHandler) Get(c *gin.Context) {
-	user, err := h.svc.Get(c.Param("id"))
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": "invalid user id"})
+		return
+	}
+
+	user, err := h.auth.Users().GetByID(uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": -1, "message": err.Error()})
 		return
@@ -37,7 +40,6 @@ func (h *UserHandler) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "success", "data": user})
 }
 
-// Create creates a new user.
 func (h *UserHandler) Create(c *gin.Context) {
 	var req struct {
 		Username string `json:"username" binding:"required"`
@@ -49,20 +51,33 @@ func (h *UserHandler) Create(c *gin.Context) {
 		return
 	}
 
-	user, err := h.svc.Create(req.Username, req.Email, req.Password)
+	user, err := h.auth.Users().Create(req.Username, req.Email, req.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "message": err.Error()})
+		status := http.StatusInternalServerError
+		if err == auth.ErrDuplicateUser {
+			status = http.StatusConflict
+		}
+		c.JSON(status, gin.H{"code": -1, "message": err.Error()})
 		return
 	}
+
+	h.auth.Quotas().InitDefaults(user.ID)
+
 	c.JSON(http.StatusCreated, gin.H{"code": 0, "message": "created", "data": user})
 }
 
-// Update updates an existing user.
 func (h *UserHandler) Update(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": "invalid user id"})
+		return
+	}
+
 	var req struct {
-		Username string `json:"username"`
+		Nickname string `json:"nickname"`
 		Email    string `json:"email"`
-		Password string `json:"password"`
+		Role     string `json:"role"`
+		Status   string `json:"status"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": err.Error()})
@@ -70,17 +85,20 @@ func (h *UserHandler) Update(c *gin.Context) {
 	}
 
 	updates := map[string]interface{}{}
-	if req.Username != "" {
-		updates["username"] = req.Username
+	if req.Nickname != "" {
+		updates["nickname"] = req.Nickname
 	}
 	if req.Email != "" {
 		updates["email"] = req.Email
 	}
-	if req.Password != "" {
-		updates["password"] = req.Password
+	if req.Role != "" {
+		updates["role"] = req.Role
+	}
+	if req.Status != "" {
+		updates["status"] = req.Status
 	}
 
-	user, err := h.svc.Update(c.Param("id"), updates)
+	user, err := h.auth.Users().Update(uint(id), updates)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": -1, "message": err.Error()})
 		return
@@ -88,11 +106,50 @@ func (h *UserHandler) Update(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "updated", "data": user})
 }
 
-// Delete removes a user.
 func (h *UserHandler) Delete(c *gin.Context) {
-	if err := h.svc.Delete(c.Param("id")); err != nil {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": "invalid user id"})
+		return
+	}
+
+	if err := h.auth.Users().Delete(uint(id)); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"code": -1, "message": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "deleted"})
+}
+
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+	var req struct {
+		OldPassword string `json:"oldPassword" binding:"required"`
+		NewPassword string `json:"newPassword" binding:"required,min=6"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": err.Error()})
+		return
+	}
+
+	userIDStr, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"code": -1, "message": "unauthorized"})
+		return
+	}
+
+	uid, err := strconv.ParseUint(userIDStr.(string), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "message": "invalid user"})
+		return
+	}
+
+	if err := h.auth.Users().ChangePassword(uint(uid), req.OldPassword, req.NewPassword); err != nil {
+		status := http.StatusBadRequest
+		if err == auth.ErrUserNotFound {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{"code": -1, "message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "password changed"})
 }

@@ -7,8 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// AutoMigrate runs GORM auto-migration for all models.
-// It creates tables, adds missing columns/indexes without destroying existing data.
 func AutoMigrate(db *gorm.DB) error {
 	log.Println("[database] running auto migration...")
 
@@ -18,6 +16,10 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.Task{},
 		&models.Plugin{},
 		&models.Workflow{},
+		&models.Session{},
+		&models.APIKey{},
+		&models.Permission{},
+		&models.Quota{},
 	)
 	if err != nil {
 		return err

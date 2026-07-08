@@ -25,7 +25,6 @@ import (
 func main() {
 	log.Println("=== AIStudio Backend ===")
 
-	// ---- 0. Create Launcher ----
 	lm := launcher.NewLauncher()
 
 	// ---- 1. Load Configuration ----

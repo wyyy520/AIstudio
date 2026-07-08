@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aistudio/backend/internal/agent"
+	"github.com/aistudio/backend/internal/config"
 	"github.com/aistudio/backend/internal/database"
 	"github.com/aistudio/backend/internal/environment"
 	"github.com/aistudio/backend/internal/plugin"
@@ -25,6 +27,8 @@ type testResponse struct {
 
 func setupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
+
+	config.Load()
 
 	// Use in-memory SQLite
 	cfg, _ := database.LoadConfig()
@@ -52,7 +56,10 @@ func setupTestRouter() *gin.Engine {
 	envMgr := environment.NewManager()
 
 	// Services
-	svc := service.NewServices(database.GetDB(), taskMgr, pluginMgr, engine, envMgr)
+	var llmProvider agent.LLMProvider
+	agentMemory, _ := agent.NewMemory(database.GetDB())
+	aiAgent := agent.NewAgent(llmProvider, agentMemory)
+	svc := service.NewServices(database.GetDB(), taskMgr, pluginMgr, engine, envMgr, aiAgent)
 
 	r := gin.New()
 	r.Use(gin.Recovery())

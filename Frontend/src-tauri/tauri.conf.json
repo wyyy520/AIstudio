@@ -108,7 +108,7 @@
       },
       "resources": [],
       "shortDescription": "AI Development Platform",
-      "targets": "all",
+      "targets": ["nsis"],
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",

@@ -47,3 +47,16 @@ mcp:
   config_path: "Config/mcp.json"
   auto_connect: true
   default_timeout: 30000  # ms
+
+# -- AI Engine (Python subprocess) --
+engine:
+  python_path: "python"
+  engine_dir: "../Engine"
+
+# -- Plugin System --
+plugin:
+  directory: "../Plugins"
+
+# -- Logging --
+log:
+  level: "debug"

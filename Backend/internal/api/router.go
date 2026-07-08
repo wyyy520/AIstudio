@@ -7,27 +7,57 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SetupRouter configures the Gin router with all API routes.
-// It takes the aggregated Services struct and middleware config, then wires everything together.
-// Middleware is applied via middleware.Apply() for consistent configuration.
 func SetupRouter(svc *service.Services, mwCfg middleware.Config) *gin.Engine {
 	r := gin.New()
 
-	// ---- Global middleware (unified registration) ----
-	// Order: Recovery → Logger → CORS → RateLimit → Auth
-	// Configure via middleware.Config or environment variables
 	middleware.Apply(r, mwCfg)
 
 	// ---- Health ----
 	healthHandler := handlers.NewHealthHandler(svc)
 	r.GET("/api/health", healthHandler.Check)
 
-	// ---- Auth (login is public) ----
-	authHandler := handlers.NewAuthHandler()
+	// ---- Auth (public) ----
+	authHandler := handlers.NewAuthHandler(svc.Auth)
 	r.POST("/api/auth/login", authHandler.Login)
+	r.POST("/api/auth/register", authHandler.Register)
+	r.POST("/api/auth/refresh", authHandler.RefreshToken)
+
+	// ---- Auth (authenticated) ----
+	authGroup := r.Group("/api/auth")
+	authGroup.POST("/logout", authHandler.Logout)
+
+	// ---- User Profile ----
+	profileHandler := handlers.NewProfileHandler(svc.Auth)
+	profile := r.Group("/api/user")
+	{
+		profile.GET("/profile", profileHandler.GetProfile)
+		profile.PUT("/profile", profileHandler.UpdateProfile)
+		profile.GET("/sessions", profileHandler.GetSessions)
+	}
+
+	// ---- API Keys ----
+	apiKeyHandler := handlers.NewAPIKeyHandler(svc.Auth)
+	apiKeys := r.Group("/api/user/apikeys")
+	{
+		apiKeys.GET("", apiKeyHandler.List)
+		apiKeys.POST("", apiKeyHandler.Create)
+		apiKeys.DELETE("/:id", apiKeyHandler.Delete)
+	}
+	r.GET("/api/providers", apiKeyHandler.GetProviders)
+
+	// ---- Quota ----
+	quotaHandler := handlers.NewQuotaHandler(svc.Auth)
+	quota := r.Group("/api/user/quota")
+	{
+		quota.GET("", quotaHandler.GetQuotas)
+		quota.GET("/check", quotaHandler.CheckQuota)
+	}
+
+	// ---- Admin: Quota Management ----
+	r.POST("/api/admin/quota", quotaHandler.UpdateQuota)
 
 	// ---- Users ----
-	userHandler := handlers.NewUserHandler(svc.User)
+	userHandler := handlers.NewUserHandler(svc.Auth)
 	users := r.Group("/api/users")
 	{
 		users.GET("", userHandler.List)
@@ -35,6 +65,7 @@ func SetupRouter(svc *service.Services, mwCfg middleware.Config) *gin.Engine {
 		users.POST("", userHandler.Create)
 		users.PUT("/:id", userHandler.Update)
 		users.DELETE("/:id", userHandler.Delete)
+		users.PUT("/:id/password", userHandler.ChangePassword)
 	}
 
 	// ---- Projects ----
@@ -58,17 +89,13 @@ func SetupRouter(svc *service.Services, mwCfg middleware.Config) *gin.Engine {
 		workflows.POST("", workflowHandler.Create)
 		workflows.PUT("/:id", workflowHandler.Update)
 		workflows.DELETE("/:id", workflowHandler.Delete)
-		// Preserved: workflow run API
 		workflows.POST("/:id/run", workflowHandler.Run)
-		// Preserved: node list API
 		workflows.GET("/nodes", workflowHandler.ListNodeTypes)
 	}
 
 	// ---- Tasks ----
 	taskHandler := handlers.NewTaskHandler(svc.Task)
-	// POST /api/task/create
 	r.POST("/api/task/create", taskHandler.Create)
-	// GET /api/task/:id/status
 	r.GET("/api/task/:id/status", taskHandler.GetStatus)
 	tasks := r.Group("/api/tasks")
 	{
@@ -82,13 +109,8 @@ func SetupRouter(svc *service.Services, mwCfg middleware.Config) *gin.Engine {
 
 	// ---- Plugins ----
 	pluginHandler := handlers.NewPluginHandler(svc.Plugin)
-	// GET /api/plugins - list all plugins
-	r.GET("/api/plugins", pluginHandler.GetPlugins)
-	// POST /api/plugin/install - install a plugin
 	r.POST("/api/plugin/install", pluginHandler.InstallPlugin)
-	// POST /api/plugin/remove - remove a plugin
 	r.POST("/api/plugin/remove", pluginHandler.RemovePlugin)
-	// GET /api/plugin/:id - get plugin details
 	r.GET("/api/plugin/:id", pluginHandler.GetPluginByID)
 	plugins := r.Group("/api/plugins")
 	{

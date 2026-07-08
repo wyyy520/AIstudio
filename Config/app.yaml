@@ -1,46 +1,69 @@
 # =============================================================================
 # AIStudio - Application Configuration
 # =============================================================================
-# This file contains the top-level application settings shared across all
-# modules (Frontend, Backend, Engine, Plugin).
+# 顶层配置文件，由 Launcher 读取，包含所有模块的启动参数
+# 路径相对于项目根目录（即 AIStudio/ 所在位置）
 # =============================================================================
 
 app:
   name: "AIStudio"
   version: "1.0.0"
-  environment: "development"  # development, staging, production
-  log_level: "info"
+  environment: "development"   # development / staging / production
+  log_level: "info"            # debug / info / warn / error
 
+# -----------------------------------------------------------------------------
+# 路径配置（相对于项目根目录）
+# -----------------------------------------------------------------------------
 paths:
   root: "."
   backend_dir: "Backend"
   frontend_dir: "Frontend"
   engine_dir: "Engine"
   plugins_dir: "Plugins"
+  runtime_dir: "Runtime"
   storage_dir: "Storage"
   config_dir: "Config"
-  data_dir: "Storage/data"
-  models_dir: "Storage/models"
-  logs_dir: "Storage/logs"
+  logs_dir: "Runtime/logs"     # 统一日志输出目录
 
+# -----------------------------------------------------------------------------
+# Launcher 自身行为配置
+# -----------------------------------------------------------------------------
 launcher:
-  startup_timeout: 30    # seconds
-  shutdown_timeout: 10   # seconds
-  health_check_interval: 5  # seconds
-  auto_restart: true
-  max_restart_attempts: 3
+  startup_timeout: 30          # 启动超时（秒）：等待服务健康检查的最大时间
+  shutdown_timeout: 10         # 关闭超时（秒）：等待进程退出的最大时间
+  health_check_interval: 5     # 健康检查间隔（秒）
+  auto_restart: true           # 服务崩溃时是否自动重启
+  max_restart_attempts: 3      # 最大重启尝试次数
 
+# -----------------------------------------------------------------------------
+# Backend 服务配置（Go HTTP 服务）
+# -----------------------------------------------------------------------------
 backend:
-  host: "0.0.0.0"
-  port: "8081"
+  executable: "cmd.exe"        # Backend 可执行文件名（编译自 Backend/cmd/main.go）
+  host: "0.0.0.0"              # 监听地址
+  port: "8081"                 # 监听端口
+  health_path: "/api/health"   # 健康检查路径
 
+# -----------------------------------------------------------------------------
+# Python Engine 服务配置
+# -----------------------------------------------------------------------------
 engine:
-  python_path: "python"
-  engine_dir: "Engine"
-  runner_script: "Engine/runner.py"
-  venv_path: "Engine/venv"
-  port: "8082"
+  python_path: "python"        # Python 解释器路径（配置 venv 后会自动切换）
+  executable: "server.py"      # Engine HTTP 服务脚本
+  engine_dir: "Engine"         # Engine 工作目录
+  venv_path: "Engine/venv"     # 虚拟环境路径（不存在则使用系统 Python）
+  port: "8082"                 # Engine HTTP 服务端口
+  health_path: "/health"       # 健康检查路径
 
+# -----------------------------------------------------------------------------
+# Frontend 服务配置（Tauri 桌面应用）
+# -----------------------------------------------------------------------------
 frontend:
-  path: "Frontend/dist/index.html"
-  backend_addr: "http://localhost:8081"
+  executable: "ai-studio.exe"  # Tauri 可执行文件名
+  frontend_dir: "src-tauri"    # src-tauri 目录（相对于 Frontend）
+  backend_addr: "http://localhost:8081"  # Backend 地址，传递给 Frontend
+  # Vite dev server 配置（debug build 需要）
+  dev_server: true             # 是否启动 Vite dev server
+  vite_port: "5173"            # Vite dev server 端口
+  vite_cmd: "npm run dev"      # Vite 启动命令
+  vite_dir: "Frontend"         # Vite 工作目录（相对于项目根目录）
