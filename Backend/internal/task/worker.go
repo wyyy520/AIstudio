@@ -13,6 +13,7 @@ type Worker struct {
 	id       int
 	queue    *TaskQueue
 	handlers map[string]TaskHandler
+	manager  *Manager
 	ctx      context.Context
 	cancel   context.CancelFunc
 	wg       sync.WaitGroup
@@ -28,6 +29,11 @@ func NewWorker(id int, queue *TaskQueue) *Worker {
 		ctx:      ctx,
 		cancel:   cancel,
 	}
+}
+
+// SetManager sets the task manager reference for lifecycle callbacks.
+func (w *Worker) SetManager(mgr *Manager) {
+	w.manager = mgr
 }
 
 // RegisterHandler registers a task handler for a specific task type.
@@ -75,34 +81,43 @@ func (w *Worker) processNext() {
 	if !ok {
 		errMsg := fmt.Sprintf("no handler registered for: %s", task.Handler)
 		log.Printf("[worker-%d] %s", w.id, errMsg)
-		task.Status = StatusFailed
-		task.Error = errMsg
-		now := time.Now()
-		task.CompletedAt = &now
+		if w.manager != nil {
+			_ = w.manager.FailTask(w.ctx, task.ID, errMsg)
+		} else {
+			task.Status = StatusFailed
+			task.Error = errMsg
+			now := time.Now()
+			task.EndTime = &now
+		}
 		return
 	}
-
-	// Update status to running
-	now := time.Now()
-	task.Status = StatusRunning
-	task.StartedAt = &now
-	task.UpdatedAt = now
 
 	// Execute
 	result, err := handler.Execute(w.ctx, task)
 	if err != nil {
 		log.Printf("[worker-%d] task %s failed: %v", w.id, task.ID, err)
-		task.Status = StatusFailed
-		task.Error = err.Error()
+		if w.manager != nil {
+			_ = w.manager.FailTask(w.ctx, task.ID, err.Error())
+		} else {
+			task.Status = StatusFailed
+			task.Error = err.Error()
+			now := time.Now()
+			task.EndTime = &now
+			task.UpdatedAt = now
+		}
 	} else {
 		log.Printf("[worker-%d] task %s completed successfully", w.id, task.ID)
-		task.Status = StatusSuccess
-		task.Result = result
+		if w.manager != nil {
+			_ = w.manager.FinishTask(w.ctx, task.ID, result)
+		} else {
+			task.Status = StatusSuccess
+			task.Progress = 1.0
+			task.Result = result
+			now := time.Now()
+			task.EndTime = &now
+			task.UpdatedAt = now
+		}
 	}
-
-	completedAt := time.Now()
-	task.CompletedAt = &completedAt
-	task.UpdatedAt = completedAt
 }
 
 // WorkerPool manages a pool of workers.
@@ -125,6 +140,15 @@ func NewWorkerPool(numWorkers int, queue *TaskQueue) *WorkerPool {
 	}
 
 	return pool
+}
+
+// SetManager sets the task manager reference on all workers.
+func (p *WorkerPool) SetManager(mgr *Manager) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	for _, w := range p.workers {
+		w.SetManager(mgr)
+	}
 }
 
 // RegisterHandler registers a handler on all workers.

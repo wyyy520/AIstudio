@@ -11,12 +11,14 @@ import (
 )
 
 // Manager is the central task management component.
-// It coordinates the queue, worker pool, scheduler, and task storage.
+// It coordinates the queue, worker pool, scheduler, event bus, and task storage.
 type Manager struct {
 	queue    *TaskQueue
 	pool     *WorkerPool
 	sched    *Scheduler
-	tasks    map[string]*Task // in-memory task store
+	events   *EventBus
+	repo     *TaskRepository
+	tasks    map[string]*Task
 	handlers map[string]TaskHandler
 	mu       sync.RWMutex
 }
@@ -29,12 +31,26 @@ func NewManager(numWorkers int) *Manager {
 	m := &Manager{
 		queue:    queue,
 		pool:     pool,
+		events:   NewEventBus(),
 		tasks:    make(map[string]*Task),
 		handlers: make(map[string]TaskHandler),
 	}
 
 	m.sched = NewScheduler(m)
+	m.pool.SetManager(m)
 	return m
+}
+
+// SetRepository sets the database repository for task persistence.
+func (m *Manager) SetRepository(repo *TaskRepository) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.repo = repo
+}
+
+// EventBus returns the event bus for subscribing to task lifecycle events.
+func (m *Manager) EventBus() *EventBus {
+	return m.events
 }
 
 // RegisterHandler registers a task handler for the given task type name.
@@ -47,22 +63,25 @@ func (m *Manager) RegisterHandler(name string, handler TaskHandler) {
 	log.Printf("[task-manager] registered handler: %s", name)
 }
 
-// Submit adds a new task to the queue and returns its ID.
-func (m *Manager) Submit(ctx context.Context, name, description, handler string, priority Priority, payload interface{}) (string, error) {
+// CreateTask creates a new task and places it in the waiting state.
+// It does NOT enqueue the task; StartTask must be called to begin execution.
+func (m *Manager) CreateTask(ctx context.Context, projectID, workflowID string, taskType TaskType, name, handler string, priority Priority, payload interface{}) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Validate handler exists
 	if _, ok := m.handlers[handler]; !ok {
 		return "", fmt.Errorf("no handler registered for: %s", handler)
 	}
 
 	task := &Task{
 		ID:          uuid.New().String(),
+		ProjectID:   projectID,
+		WorkflowID:  workflowID,
+		Type:        taskType,
 		Name:        name,
-		Description: description,
+		Status:      StatusWaiting,
+		Progress:    0,
 		Priority:    priority,
-		Status:      StatusPending,
 		Handler:     handler,
 		Payload:     payload,
 		CreatedAt:   time.Now(),
@@ -70,9 +89,184 @@ func (m *Manager) Submit(ctx context.Context, name, description, handler string,
 	}
 
 	m.tasks[task.ID] = task
-	m.queue.Enqueue(task)
-	log.Printf("[task-manager] submitted task: %s (handler: %s, priority: %s)", task.ID, handler, priority)
+
+	// Persist to database
+	if m.repo != nil {
+		if err := m.repo.Save(task); err != nil {
+			log.Printf("[task-manager] failed to persist task %s: %v", task.ID, err)
+		}
+	}
+
+	// Emit event
+	m.events.EmitTaskCreated(task)
+
+	log.Printf("[task-manager] created task: %s (type: %s, handler: %s)", task.ID, taskType, handler)
 	return task.ID, nil
+}
+
+// StartTask moves a task from waiting to running and enqueues it for execution.
+func (m *Manager) StartTask(ctx context.Context, taskID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	task, ok := m.tasks[taskID]
+	if !ok {
+		return fmt.Errorf("task not found: %s", taskID)
+	}
+
+	if err := ValidateTransition(task.Status, StatusRunning); err != nil {
+		return fmt.Errorf("cannot start task %s: %w", taskID, err)
+	}
+
+	task.Status = StatusRunning
+	now := time.Now()
+	task.StartTime = &now
+	task.UpdatedAt = now
+
+	// Persist status change
+	if m.repo != nil {
+		if err := m.repo.Update(task); err != nil {
+			log.Printf("[task-manager] failed to update task %s in db: %v", taskID, err)
+		}
+	}
+
+	// Enqueue for execution
+	m.queue.Enqueue(task)
+
+	// Emit event
+	m.events.EmitTaskStarted(task)
+
+	log.Printf("[task-manager] started task: %s", taskID)
+	return nil
+}
+
+// UpdateProgress updates the progress of a running task (0.0 ~ 1.0).
+func (m *Manager) UpdateProgress(ctx context.Context, taskID string, progress float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	task, ok := m.tasks[taskID]
+	if !ok {
+		return fmt.Errorf("task not found: %s", taskID)
+	}
+
+	if task.Status != StatusRunning {
+		return fmt.Errorf("task %s is not running (status: %s)", taskID, task.Status)
+	}
+
+	if progress < 0 {
+		progress = 0
+	}
+	if progress > 1.0 {
+		progress = 1.0
+	}
+
+	task.Progress = progress
+	task.UpdatedAt = time.Now()
+
+	// Persist progress update
+	if m.repo != nil {
+		if err := m.repo.Update(task); err != nil {
+			log.Printf("[task-manager] failed to update progress for task %s: %v", taskID, err)
+		}
+	}
+
+	// Emit event
+	m.events.EmitTaskProgress(task)
+
+	log.Printf("[task-manager] task %s progress: %.0f%%", taskID, progress*100)
+	return nil
+}
+
+// FinishTask marks a task as successfully completed.
+func (m *Manager) FinishTask(ctx context.Context, taskID string, result interface{}) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	task, ok := m.tasks[taskID]
+	if !ok {
+		return fmt.Errorf("task not found: %s", taskID)
+	}
+
+	if err := ValidateTransition(task.Status, StatusSuccess); err != nil {
+		return fmt.Errorf("cannot finish task %s: %w", taskID, err)
+	}
+
+	task.Status = StatusSuccess
+	task.Progress = 1.0
+	task.Result = result
+	now := time.Now()
+	task.EndTime = &now
+	task.UpdatedAt = now
+
+	// Persist
+	if m.repo != nil {
+		if err := m.repo.Update(task); err != nil {
+			log.Printf("[task-manager] failed to persist completed task %s: %v", taskID, err)
+		}
+	}
+
+	// Emit event
+	m.events.EmitTaskCompleted(task)
+
+	log.Printf("[task-manager] task %s completed successfully", taskID)
+	return nil
+}
+
+// FailTask marks a task as failed with an error message.
+func (m *Manager) FailTask(ctx context.Context, taskID string, errMsg string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	task, ok := m.tasks[taskID]
+	if !ok {
+		return fmt.Errorf("task not found: %s", taskID)
+	}
+
+	if err := ValidateTransition(task.Status, StatusFailed); err != nil {
+		return fmt.Errorf("cannot fail task %s: %w", taskID, err)
+	}
+
+	task.Status = StatusFailed
+	task.Error = errMsg
+	now := time.Now()
+	task.EndTime = &now
+	task.UpdatedAt = now
+
+	// Persist
+	if m.repo != nil {
+		if err := m.repo.Update(task); err != nil {
+			log.Printf("[task-manager] failed to persist failed task %s: %v", taskID, err)
+		}
+	}
+
+	// Emit event
+	m.events.EmitTaskFailed(task)
+
+	log.Printf("[task-manager] task %s failed: %s", taskID, errMsg)
+	return nil
+}
+
+// Submit adds a new task, places it in waiting, and starts it immediately.
+// This is a convenience method combining CreateTask + StartTask.
+func (m *Manager) Submit(ctx context.Context, name, description, handler string, priority Priority, payload interface{}) (string, error) {
+	taskID, err := m.CreateTask(ctx, "", "", TaskTypeWorkflow, name, handler, priority, payload)
+	if err != nil {
+		return "", err
+	}
+
+	// Set description after creation
+	m.mu.Lock()
+	if task, ok := m.tasks[taskID]; ok {
+		task.Description = description
+	}
+	m.mu.Unlock()
+
+	if err := m.StartTask(ctx, taskID); err != nil {
+		return taskID, err
+	}
+
+	return taskID, nil
 }
 
 // GetTask returns a task by ID.
@@ -87,7 +281,22 @@ func (m *Manager) GetTask(ctx context.Context, taskID string) (*Task, error) {
 	return task, nil
 }
 
-// Cancel cancels a task if it is still pending or running.
+// GetTaskStatus returns the status response for a task.
+func (m *Manager) GetTaskStatus(ctx context.Context, taskID string) (*TaskStatusResponse, error) {
+	task, err := m.GetTask(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TaskStatusResponse{
+		TaskID:   task.ID,
+		Status:   task.Status,
+		Progress: task.Progress,
+		Error:    task.Error,
+	}, nil
+}
+
+// Cancel cancels a task if it is still waiting or running.
 func (m *Manager) Cancel(ctx context.Context, taskID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -102,14 +311,22 @@ func (m *Manager) Cancel(ctx context.Context, taskID string) error {
 	}
 
 	task.Status = StatusCancelled
-	task.UpdatedAt = time.Now()
-	completedAt := time.Now()
-	task.CompletedAt = &completedAt
+	now := time.Now()
+	task.EndTime = &now
+	task.UpdatedAt = now
 
-	// Remove from queue if still pending
-	if task.Status == StatusPending {
-		m.queue.Remove(taskID)
+	// Remove from queue if still waiting
+	m.queue.Remove(taskID)
+
+	// Persist
+	if m.repo != nil {
+		if err := m.repo.Update(task); err != nil {
+			log.Printf("[task-manager] failed to persist cancelled task %s: %v", taskID, err)
+		}
 	}
+
+	// Emit event
+	m.events.EmitTaskCancelled(task)
 
 	log.Printf("[task-manager] cancelled task: %s", taskID)
 	return nil
@@ -172,9 +389,22 @@ func (m *Manager) UpdateStatus(ctx context.Context, taskID string, newStatus Sta
 
 	task.Status = newStatus
 	task.UpdatedAt = time.Now()
+
+	if newStatus == StatusRunning && task.StartTime == nil {
+		now := time.Now()
+		task.StartTime = &now
+	}
+
 	if newStatus == StatusSuccess || newStatus == StatusFailed || newStatus == StatusCancelled {
-		completedAt := time.Now()
-		task.CompletedAt = &completedAt
+		now := time.Now()
+		task.EndTime = &now
+	}
+
+	// Persist
+	if m.repo != nil {
+		if err := m.repo.Update(task); err != nil {
+			log.Printf("[task-manager] failed to persist status update for task %s: %v", taskID, err)
+		}
 	}
 
 	log.Printf("[task-manager] updated task %s status: %s -> %s", taskID, task.Status, newStatus)
@@ -190,24 +420,18 @@ func (m *Manager) DeleteTask(ctx context.Context, taskID string) error {
 		return fmt.Errorf("task not found: %s", taskID)
 	}
 
-	// Remove from queue if still pending
+	// Remove from queue if still waiting
 	m.queue.Remove(taskID)
 
 	delete(m.tasks, taskID)
-	log.Printf("[task-manager] deleted task: %s", taskID)
-	return nil
-}
 
-// TaskCount returns the number of tasks in the given status.
-func (m *Manager) TaskCount(status Status) int {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	count := 0
-	for _, t := range m.tasks {
-		if t.Status == status {
-			count++
+	// Remove from database
+	if m.repo != nil {
+		if err := m.repo.Delete(taskID); err != nil {
+			log.Printf("[task-manager] failed to delete task %s from db: %v", taskID, err)
 		}
 	}
-	return count
+
+	log.Printf("[task-manager] deleted task: %s", taskID)
+	return nil
 }

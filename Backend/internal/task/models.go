@@ -31,34 +31,56 @@ func (p Priority) String() string {
 type Status string
 
 const (
-	StatusPending   Status = "pending"
+	StatusWaiting   Status = "waiting"
 	StatusRunning   Status = "running"
 	StatusSuccess   Status = "success"
 	StatusFailed    Status = "failed"
 	StatusCancelled Status = "cancelled"
 )
 
-// Task represents a unit of async work.
+// TaskType defines the category of work a task represents.
+type TaskType string
+
+const (
+	TaskTypeWorkflow TaskType = "workflow"
+	TaskTypeAgent    TaskType = "agent"
+	TaskTypePlugin   TaskType = "plugin"
+)
+
+// Task represents a unit of async work in the AIStudio system.
+// It maps to the task-schema.md protocol definition.
 type Task struct {
-	ID          string      `json:"id"`
+	ID          string      `json:"task_id"`
+	ProjectID   string      `json:"project_id"`
+	WorkflowID  string      `json:"workflow_id"`
+	Type        TaskType    `json:"type"`
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
-	Priority    Priority    `json:"priority"`
 	Status      Status      `json:"status"`
-	Handler     string      `json:"handler"` // handler name to execute
+	Progress    float64     `json:"progress"`
+	Priority    Priority    `json:"priority"`
+	Handler     string      `json:"handler"`
 	Payload     interface{} `json:"payload,omitempty"`
 	Result      interface{} `json:"result,omitempty"`
 	Error       string      `json:"error,omitempty"`
-	CreatedAt   time.Time   `json:"createdAt"`
-	UpdatedAt   time.Time   `json:"updatedAt"`
-	StartedAt   *time.Time  `json:"startedAt,omitempty"`
-	CompletedAt *time.Time  `json:"completedAt,omitempty"`
+	StartTime   *time.Time  `json:"start_time,omitempty"`
+	EndTime     *time.Time  `json:"end_time,omitempty"`
+	CreatedAt   time.Time   `json:"created_at"`
+	UpdatedAt   time.Time   `json:"updated_at"`
 }
 
 // TaskResult holds the result of a completed task.
 type TaskResult struct {
-	TaskID string      `json:"taskId"`
+	TaskID string      `json:"task_id"`
 	Status Status      `json:"status"`
 	Result interface{} `json:"result,omitempty"`
 	Error  string      `json:"error,omitempty"`
+}
+
+// TaskStatusResponse is the API response for GET /api/task/:id/status
+type TaskStatusResponse struct {
+	TaskID   string  `json:"task_id"`
+	Status   Status  `json:"status"`
+	Progress float64 `json:"progress"`
+	Error    string  `json:"error,omitempty"`
 }

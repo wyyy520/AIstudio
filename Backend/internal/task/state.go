@@ -4,7 +4,7 @@ import "fmt"
 
 // stateTransitions defines valid status transitions.
 var stateTransitions = map[Status][]Status{
-	StatusPending:   {StatusRunning, StatusCancelled},
+	StatusWaiting:   {StatusRunning, StatusCancelled},
 	StatusRunning:   {StatusSuccess, StatusFailed, StatusCancelled},
 	StatusSuccess:   {}, // terminal
 	StatusFailed:    {}, // terminal
@@ -31,7 +31,7 @@ func IsTerminal(s Status) bool {
 	return s == StatusSuccess || s == StatusFailed || s == StatusCancelled
 }
 
-// IsActive returns true if the task is still active (pending or running).
+// IsActive returns true if the task is still active (waiting or running).
 func IsActive(s Status) bool {
-	return s == StatusPending || s == StatusRunning
+	return s == StatusWaiting || s == StatusRunning
 }
