@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+vendor/
+
+# Build output
+dist/
+build/
+target/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Runtime
+Runtime/cache/
+Runtime/logs/
+Runtime/temp/
+Runtime/downloads/
+Runtime/tasks/
+Runtime/workspace/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.production.local
+*.log
+
+# Docker
+deploy/nginx/ssl/
+
+# PID files
+.aistudio_pids.json

@@ -1,0 +1,62 @@
+# =============================================================================
+# AIStudio Backend - Default Configuration
+# =============================================================================
+# This is the SINGLE canonical configuration source for the AIStudio Backend.
+# Environment-specific overrides go into development.yaml or production.yaml.
+# Environment variables (AISTUDIO_*) take highest priority.
+# =============================================================================
+
+# -- HTTP Server --------------------------------------------------------------
+server:
+  port: "8081"
+  host: "0.0.0.0"
+
+# -- Database -----------------------------------------------------------------
+database:
+  type: "sqlite"
+  url: "aistudio.db"
+
+# -- JWT Authentication -------------------------------------------------------
+jwt:
+  secret: "aistudio-default-secret-change-in-production"
+  expire: "24h"
+
+# -- WebSocket ----------------------------------------------------------------
+websocket:
+  enabled: true
+  heartbeat_interval: 30
+  max_connections: 1000
+
+# -- Task Manager -------------------------------------------------------------
+task:
+  num_workers: 4
+  queue_size: 100
+  retry_max: 3
+  retry_delay: 5
+
+# -- LLM Provider (for AI Agent) ----------------------------------------------
+llm:
+  provider: ""
+  api_key: ""
+  base_url: ""
+  model: ""
+
+# -- MCP (Model Context Protocol) ---------------------------------------------
+mcp:
+  config_path: "config/mcp.json"
+  auto_connect: true
+  default_timeout: 30000
+
+# -- AI Engine (Python subprocess) --------------------------------------------
+engine:
+  python_path: "python"
+  engine_dir: "../../Engine"
+  timeout: "30m"
+
+# -- Plugin System ------------------------------------------------------------
+plugin:
+  directory: "../../Plugins"
+
+# -- Logging ------------------------------------------------------------------
+log:
+  level: "info"

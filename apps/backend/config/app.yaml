@@ -1,0 +1,98 @@
+# =============================================================================
+# AIStudio - Application Configuration
+# =============================================================================
+# 顶层配置文件，由 Launcher 读取，包含所有模块的启动参数
+# 路径相对于项目根目录（即 AIStudio/ 所在位置）
+#
+# 生产环境部署时，建议通过环境变量覆盖敏感配置：
+#   AISTUDIO_ENV, DATABASE_URL, JWT_SECRET, LLM_API_KEY 等
+# =============================================================================
+
+app:
+  name: "AIStudio"
+  version: "1.0.0"
+  environment: "development"    # development / staging / production
+  log_level: "info"            # debug / info / warn / error
+
+# -----------------------------------------------------------------------------
+# 路径配置（相对于项目根目录）
+# -----------------------------------------------------------------------------
+paths:
+  root: "."
+  backend_dir: "Backend"
+  frontend_dir: "Frontend"
+  engine_dir: "Engine"
+  plugins_dir: "Plugins"
+  runtime_dir: "Runtime"
+  storage_dir: "Storage"
+  config_dir: "Config"
+  logs_dir: "Runtime/logs"
+
+# -----------------------------------------------------------------------------
+# Launcher 自身行为配置
+# -----------------------------------------------------------------------------
+launcher:
+  startup_timeout: 30
+  shutdown_timeout: 10
+  health_check_interval: 5
+  auto_restart: true
+  max_restart_attempts: 3
+
+# -----------------------------------------------------------------------------
+# Backend 服务配置（Go HTTP 服务）
+# 生产环境通过环境变量覆盖：SERVER_HOST, SERVER_PORT
+# -----------------------------------------------------------------------------
+backend:
+  executable: "aistudio-backend.exe"
+  host: "0.0.0.0"
+  port: "8081"
+  health_path: "/api/health"
+
+# -----------------------------------------------------------------------------
+# Python Engine 服务配置
+# 生产环境通过环境变量覆盖：ENGINE_HOST, ENGINE_PORT
+# -----------------------------------------------------------------------------
+engine:
+  python_path: "python"
+  executable: "server.py"
+  engine_dir: "Engine"
+  venv_path: "Engine/venv"
+  host: "0.0.0.0"
+  port: "8082"
+  health_path: "/health"
+
+# -----------------------------------------------------------------------------
+# Frontend 服务配置
+# 生产环境通过 Nginx 反向代理，不再需要 Vite dev server
+# -----------------------------------------------------------------------------
+frontend:
+  executable: "ai-studio.exe"
+  frontend_dir: "src-tauri"
+  backend_addr: ""             # 生产环境由 Nginx 代理，无需直连
+  dev_server: true
+  vite_port: "5173"
+  vite_cmd: "npm run dev"
+  vite_dir: "Frontend"
+
+# -----------------------------------------------------------------------------
+# 数据库配置
+# 生产环境通过 DATABASE_URL 环境变量覆盖
+# -----------------------------------------------------------------------------
+database:
+  type: "sqlite"
+  url: "aistudio.db"
+
+# -----------------------------------------------------------------------------
+# Redis 配置（可选，用于会话缓存和任务队列）
+# -----------------------------------------------------------------------------
+redis:
+  enabled: false
+  url: ""                      # redis://localhost:6379/0
+
+# -----------------------------------------------------------------------------
+# CORS 配置
+# 生产环境通过 CORS_ALLOWED_ORIGINS 环境变量覆盖
+# 多个源用逗号分隔，例如：https://aistudio.example.com,https://app.example.com
+# -----------------------------------------------------------------------------
+cors:
+  allowed_origins: ""          # 为空时自动根据 AISTUDIO_ENV 决定

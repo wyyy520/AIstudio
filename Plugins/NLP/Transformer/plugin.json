@@ -1,0 +1,52 @@
+{
+  "id": "transformer",
+  "name": "Transformer NLP",
+  "version": "2.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "algorithm",
+  "description": "Transformer models for NLP tasks: text classification, NER, QA",
+  "author": "Hugging Face",
+  "nodes": [
+    {
+      "type": "model_inference.transformer_classification",
+      "name": "文本分类",
+      "description": "使用 Transformer 进行文本分类",
+      "inputs": [
+        { "id": "text", "name": "文本", "type": "text", "required": true }
+      ],
+      "outputs": [
+        { "id": "result", "name": "分类结果", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "model_name": { "type": "string", "default": "distilbert-base-uncased", "description": "HuggingFace 模型名称" },
+          "max_length": { "type": "integer", "default": 512, "minimum": 1 },
+          "labels": { "type": "array", "items": { "type": "string" }, "description": "分类标签列表" }
+        },
+        "required": ["model_name"]
+      }
+    },
+    {
+      "type": "model_inference.transformer_ner",
+      "name": "命名实体识别",
+      "description": "识别文本中的命名实体",
+      "inputs": [
+        { "id": "text", "name": "文本", "type": "text", "required": true }
+      ],
+      "outputs": [
+        { "id": "entities", "name": "实体列表", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "model_name": { "type": "string", "default": "dbmdz/bert-large-cased-finetuned-conll03-english", "description": "NER 模型名称" },
+          "aggregation": { "type": "string", "default": "none", "enum": ["none", "simple", "first", "average"], "description": "实体聚合策略" }
+        },
+        "required": ["model_name"]
+      }
+    }
+  ],
+  "runtime_bundle": "transformers",
+  "supported_targets": ["python"]
+}

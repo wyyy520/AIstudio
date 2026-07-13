@@ -1,0 +1,44 @@
+"""Model inference module - generated from workflow node {{.NodeID}}."""
+
+import logging
+from typing import Any, Dict, Optional
+
+logger = logging.getLogger(__name__)
+
+
+class {{.ClassName}}:
+    """Runs inference using a trained model."""
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
+        self.model_path = self.config.get("model_path", "models/model.pt")
+        self.confidence = self.config.get("confidence", 0.5)
+        self.device = self.config.get("device", "cpu")
+        logger.info(
+            "Initialized %s: model=%s, confidence=%.2f",
+            self.__class__.__name__, self.model_path, self.confidence,
+        )
+
+    def execute(self, **inputs) -> Dict[str, Any]:
+        """
+        Run inference on input data.
+
+        Args:
+            **inputs: Must contain "model" or "model_path".
+
+        Returns:
+            Predictions and inference results.
+        """
+        logger.info("Running inference")
+
+        model_path = inputs.get("model_path", inputs.get("model", self.model_path))
+        data = inputs.get("preprocessed", inputs.get("dataset", {}))
+
+        predictions = self._predict(model_path, data)
+
+        return {"predictions": predictions, "results": predictions}
+
+    def _predict(self, model_path: str, data: Dict[str, Any]) -> list:
+        """Execute inference logic."""
+        logger.info("Running inference with model %s", model_path)
+        return []

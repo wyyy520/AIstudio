@@ -1,0 +1,49 @@
+# =============================================================================
+# AIStudio Backend - Production Configuration
+# =============================================================================
+# All sensitive values MUST be set via environment variables in production.
+# Environment variables take highest priority (see config.go bindEnvVars).
+# =============================================================================
+
+server:
+  host: "0.0.0.0"
+  port: "8081"
+
+database:
+  type: "postgres"
+  url: ""                    # MUST be set via DATABASE_URL env var
+
+jwt:
+  secret: ""                 # MUST be set via JWT_SECRET env var
+  expire: "2h"
+
+log:
+  level: "warn"
+
+engine:
+  python_path: "python"
+  engine_dir: "/app/engine"
+  timeout: "30m"
+
+plugin:
+  directory: "/app/plugins"
+
+websocket:
+  port: "8082"
+
+task:
+  num_workers: 8
+
+mcp:
+  config_path: "config/mcp.json"
+  auto_connect: true
+  default_timeout: 30000
+
+llm:
+  provider: ""               # MUST be set via LLM_PROVIDER env var
+  api_key: ""                # MUST be set via LLM_API_KEY env var
+  base_url: ""               # MUST be set via LLM_BASE_URL env var
+  model: ""                  # MUST be set via LLM_MODEL env var
+  max_tokens: 4096
+  temperature: 0.7
+  timeout: "60s"

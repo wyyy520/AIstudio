@@ -1,0 +1,23 @@
+# AI Studio Engine - Python Algorithm Dependencies
+
+# Core
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+
+# Vision / YOLO
+opencv-python>=4.8.0
+Pillow>=10.0.0
+ultralytics>=8.0.0
+
+# Dataset & Format
+PyYAML>=6.0
+pandas>=2.0.0
+
+# Export (optional)
+onnx>=1.14.0
+onnxruntime>=1.15.0
+onnxsim>=0.4.0
+
+# Safe model format
+safetensors>=0.3.0

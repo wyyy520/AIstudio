@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0.0",
+  "id": "wf-yolo-train-001",
+  "name": "YOLO Training Pipeline",
+  "description": "End-to-end YOLOv8 training workflow: dataset preparation → model training",
+  "project_id": "prj-demo",
+  "version": 1,
+  "created_at": "2026-07-09T00:00:00Z",
+  "updated_at": "2026-07-09T00:00:00Z",
+  "author": "AIStudio",
+  "tags": ["yolo", "training", "vision", "demo"],
+  "variables": {
+    "dataset_path": "Storage/datasets/coco128",
+    "model_name": "yolov8n.pt",
+    "epochs": 100,
+    "batch_size": 16,
+    "device": "cuda",
+    "output_dir": "Storage/models/yolo_train"
+  },
+  "nodes": [
+    {
+      "id": "node-dataset",
+      "type": "input",
+      "plugin": "data-source",
+      "name": "数据集",
+      "description": "Load training dataset from storage",
+      "position": { "x": 100, "y": 100 },
+      "parameters": {
+        "dataset": "${dataset_path}",
+        "format": "yolo"
+      },
+      "inputs": [],
+      "outputs": [
+        { "id": "out_image", "name": "image", "type": "image", "required": true },
+        { "id": "out_text", "name": "dataset_path", "type": "text", "required": true }
+      ]
+    },
+    {
+      "id": "node-yolo-train",
+      "type": "vision",
+      "plugin": "yolo-detector",
+      "name": "YOLO 训练",
+      "description": "Train YOLOv8 model on the dataset",
+      "position": { "x": 400, "y": 100 },
+      "parameters": {
+        "action": "train",
+        "model": "${model_name}",
+        "epochs": "${epochs}",
+        "batch": "${batch_size}",
+        "device": "${device}",
+        "output_dir": "${output_dir}",
+        "pretrained": true,
+        "workers": 4,
+        "img_size": 640,
+        "optimizer": "auto",
+        "patience": 50,
+        "lr0": 0.01
+      },
+      "inputs": [
+        { "id": "in_image", "name": "image", "type": "image", "required": true }
+      ],
+      "outputs": [
+        { "id": "out_detections", "name": "detections", "type": "json", "required": true }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-dataset-to-yolo",
+      "source": { "node_id": "node-dataset", "port_id": "out_image" },
+      "target": { "node_id": "node-yolo-train", "port_id": "in_image" },
+      "label": "image data"
+    }
+  ]
+}

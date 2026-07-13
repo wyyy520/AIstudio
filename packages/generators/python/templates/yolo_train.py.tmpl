@@ -1,0 +1,90 @@
+"""YOLO training script - generated from workflow."""
+
+import os
+import yaml
+import logging
+from pathlib import Path
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+
+class YOLOTrainer:
+    """YOLO model trainer generated from workflow."""
+
+    def __init__(self, config: Optional[dict] = None):
+        self.config = config or {}
+        self.model_name = self.config.get("model", "yolo11n.pt")
+        self.data_yaml = self.config.get("data", "data.yaml")
+        self.epochs = self.config.get("epochs", 100)
+        self.imgsz = self.config.get("imgsz", 640)
+        self.batch = self.config.get("batch", 16)
+        self.device = self.config.get("device", "cpu")
+        self.project = self.config.get("project", "models")
+        self.name = self.config.get("name", "train")
+        self.seed = self.config.get("seed", 42)
+        logger.info(
+            "YOLOTrainer initialized: model=%s, epochs=%d, device=%s",
+            self.model_name, self.epochs, self.device,
+        )
+
+    def execute(self, **inputs) -> dict:
+        """
+        Execute YOLO training.
+
+        Args:
+            **inputs: Input data (expected "dataset" key).
+
+        Returns:
+            Training results including model path.
+        """
+        logger.info("Starting YOLO training...")
+
+        try:
+            from ultralytics import YOLO
+        except ImportError:
+            logger.error(
+                "ultralytics is not installed. Run: pip install ultralytics"
+            )
+            raise
+
+        # Determine data configuration
+        data_path = self._resolve_data_path(inputs)
+
+        # Load model
+        model = YOLO(self.model_name)
+
+        # Train
+        results = model.train(
+            data=data_path,
+            epochs=self.epochs,
+            imgsz=self.imgsz,
+            batch=self.batch,
+            device=self.device,
+            project=self.project,
+            name=self.name,
+            seed=self.seed,
+            exist_ok=True,
+            verbose=True,
+        )
+
+        # Save training info
+        output_model_path = str(Path(self.project) / self.name / "weights" / "best.pt")
+        logger.info("Training complete. Model saved to: %s", output_model_path)
+
+        return {
+            "model_path": output_model_path,
+            "results": results,
+            "metrics": getattr(results, "metrics", {}),
+        }
+
+    def _resolve_data_path(self, inputs: dict) -> str:
+        """Resolve the dataset YAML path."""
+        data_path = self.data_yaml
+        if "dataset" in inputs:
+            dataset = inputs["dataset"]
+            if isinstance(dataset, str) and os.path.isfile(dataset):
+                data_path = dataset
+        if not os.path.isfile(data_path):
+            logger.warning("Data file not found: %s", data_path)
+        return data_path

@@ -1,0 +1,33 @@
+{
+  "id": "sam",
+  "name": "SAM 图像分割",
+  "version": "2.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "algorithm",
+  "description": "Segment Anything Model — universal image segmentation",
+  "author": "Meta AI",
+  "nodes": [
+    {
+      "type": "model_inference.sam",
+      "name": "SAM 图像分割",
+      "description": "使用 SAM 分割图像中的任意目标",
+      "inputs": [
+        { "id": "image", "name": "图像", "type": "image", "required": true },
+        { "id": "points", "name": "提示点", "type": "json" }
+      ],
+      "outputs": [
+        { "id": "mask", "name": "分割掩码", "type": "image" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "model_type": { "type": "string", "default": "vit_h", "enum": ["vit_h", "vit_l", "vit_b"], "description": "SAM 模型变体" },
+          "device": { "type": "string", "default": "cuda", "enum": ["cuda", "cpu"] },
+          "multimask_output": { "type": "boolean", "default": true, "description": "是否输出多个掩码" }
+        }
+      }
+    }
+  ],
+  "runtime_bundle": "segment-anything",
+  "supported_targets": ["python"]
+}

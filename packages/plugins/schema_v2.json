@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://aistudio.dev/schemas/plugin-schema-v2.json",
+  "title": "AIStudio Plugin Manifest v2",
+  "description": "Plugin manifests are pure declarations of capabilities. They contain NO executable code.",
+  "type": "object",
+  "required": ["id", "name", "version", "min_schema_version", "kind", "nodes"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique plugin identifier (kebab-case)",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "examples": ["yolo", "sam", "transformer"]
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable plugin name"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the plugin manifest",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "min_schema_version": {
+      "type": "string",
+      "description": "Minimum schema version required to parse this manifest",
+      "default": "2.0.0"
+    },
+    "kind": {
+      "type": "string",
+      "description": "Category of plugin capability",
+      "enum": ["algorithm", "runtime", "system", "adapter", "tool"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the plugin's purpose"
+    },
+    "author": {
+      "type": "string",
+      "description": "Plugin author or organization"
+    },
+    "nodes": {
+      "type": "array",
+      "description": "Node type definitions provided by this plugin",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["type", "name"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Unique node type identifier (dot-notation, e.g. model_trainer.yolo)",
+            "pattern": "^[a-z][a-z0-9_.-]*$"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable node display name"
+          },
+          "description": {
+            "type": "string",
+            "description": "What this node does"
+          },
+          "inputs": {
+            "type": "array",
+            "description": "Input port definitions",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "type"],
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "required": { "type": "boolean", "default": false }
+              }
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "description": "Output port definitions",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "type"],
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "required": { "type": "boolean", "default": false }
+              }
+            }
+          },
+          "config_schema": {
+            "type": "object",
+            "description": "JSON Schema for node configuration parameters"
+          }
+        }
+      }
+    },
+    "runtime_bundle": {
+      "type": "string",
+      "description": "Name of the runtime bundle required to execute this plugin's nodes"
+    },
+    "supported_targets": {
+      "type": "array",
+      "description": "Target platforms this plugin supports",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

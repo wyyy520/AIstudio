@@ -1,0 +1,35 @@
+"""Tests for main entry point."""
+
+import os
+import sys
+import unittest
+from pathlib import Path
+
+
+class TestProjectStructure(unittest.TestCase):
+    """Verify the generated project structure."""
+
+    def test_project_root_exists(self):
+        """Verify project root directory exists."""
+        self.assertTrue(os.path.isdir("."))
+
+    def test_src_package_exists(self):
+        """Verify src/ package exists."""
+        self.assertTrue(os.path.isdir("src"))
+        self.assertTrue(os.path.isfile("src/__init__.py"))
+
+    def test_config_directory_exists(self):
+        """Verify config/ directory exists."""
+        self.assertTrue(os.path.isdir("config"))
+
+    def test_main_entry_point(self):
+        """Verify main.py exists."""
+        self.assertTrue(os.path.isfile("main.py"))
+
+    def test_requirements_exists(self):
+        """Verify requirements.txt exists."""
+        self.assertTrue(os.path.isfile("requirements.txt"))
+
+
+if __name__ == "__main__":
+    unittest.main()

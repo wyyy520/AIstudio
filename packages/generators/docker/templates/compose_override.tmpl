@@ -1,0 +1,13 @@
+# Docker Compose override for {{.ProjectName}}
+# Override this file for local development settings
+
+version: "3.8"
+
+services:
+  {{(index .Services 0).Name}}:
+    build:
+      target: development
+    volumes:
+      - ./config:/app/config
+    environment:
+      - AISTUDIO_ENV=development

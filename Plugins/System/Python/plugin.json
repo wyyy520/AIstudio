@@ -1,0 +1,32 @@
+{
+  "id": "python-runner",
+  "name": "Python 执行器",
+  "version": "2.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "runtime",
+  "description": "Execute arbitrary Python code and scripts within the AIStudio runtime",
+  "author": "AIStudio",
+  "nodes": [
+    {
+      "type": "runtime.python_exec",
+      "name": "Python 执行器",
+      "description": "执行 Python 代码片段或脚本文件",
+      "inputs": [
+        { "id": "code", "name": "代码", "type": "text", "required": true },
+        { "id": "inputs", "name": "输入参数", "type": "json" }
+      ],
+      "outputs": [
+        { "id": "result", "name": "执行结果", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "timeout": { "type": "integer", "default": 30, "minimum": 1, "description": "执行超时（秒）" },
+          "workdir": { "type": "string", "description": "工作目录" }
+        }
+      }
+    }
+  ],
+  "runtime_bundle": "python",
+  "supported_targets": ["python"]
+}

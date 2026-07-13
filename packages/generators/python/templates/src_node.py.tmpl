@@ -1,0 +1,32 @@
+"""{{.ModuleName}} module - generated from workflow node {{.NodeID}}."""
+
+import logging
+from typing import Any, Dict, Optional
+
+logger = logging.getLogger(__name__)
+
+
+class {{.ClassName}}:
+    """{{.NodeName}} workflow node implementation."""
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
+        logger.info("Initialized %s with config: %s", self.__class__.__name__, self.config)
+
+    def execute(self, **inputs) -> Dict[str, Any]:
+        """
+        Execute the {{.NodeName}} node.
+
+        Args:
+            **inputs: Input data from upstream nodes.
+
+        Returns:
+            Output data for downstream nodes.
+        """
+        logger.info("Executing %s", self.__class__.__name__)
+        return self._process(inputs)
+
+    def _process(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Process inputs and produce outputs."""
+        # TODO: Implement node logic for {{.NodeType}}
+        return {"output": inputs}

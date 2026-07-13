@@ -1,0 +1,54 @@
+"""Data loader module - generated from workflow node {{.NodeID}}."""
+
+import os
+import logging
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+logger = logging.getLogger(__name__)
+
+
+class {{.ClassName}}:
+    """Loads dataset from configured source path."""
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
+        self.source = self.config.get("source", "data")
+        self.dataset = self.config.get("dataset", "")
+        self.split = self.config.get("split", "train")
+        self.format = self.config.get("format", "auto")
+        logger.info(
+            "Initialized %s: source=%s, dataset=%s",
+            self.__class__.__name__, self.source, self.dataset,
+        )
+
+    def execute(self, **inputs) -> Dict[str, Any]:
+        """
+        Load the dataset from the configured source.
+
+        Args:
+            **inputs: Unused for source nodes.
+
+        Returns:
+            Dictionary containing the loaded dataset.
+        """
+        logger.info("Loading dataset from %s", self.source)
+
+        dataset_path = self._resolve_path()
+        if not os.path.exists(dataset_path):
+            logger.warning("Dataset path does not exist: %s", dataset_path)
+
+        return {
+            "dataset": {
+                "path": dataset_path,
+                "name": self.dataset,
+                "split": self.split,
+                "format": self.format,
+            }
+        }
+
+    def _resolve_path(self) -> str:
+        """Resolve the dataset path to an absolute path."""
+        if os.path.isabs(self.source):
+            return self.source
+        return str(Path(self.source).resolve())

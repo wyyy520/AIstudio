@@ -1,0 +1,16 @@
+# =============================================================================
+# AIStudio Backend - Development Configuration
+# =============================================================================
+# Overrides default.yaml for local development.
+# These values are loaded AFTER default.yaml and can be overridden by env vars.
+# =============================================================================
+
+server:
+  host: "127.0.0.1"
+
+database:
+  type: "sqlite"
+  url: "aistudio_dev.db"
+
+log:
+  level: "debug"

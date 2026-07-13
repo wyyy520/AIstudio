@@ -1,0 +1,23 @@
+# AIStudio Generated Launch File
+# Workflow: {{.WorkflowName}} ({{.WorkflowID}})
+
+import os
+from launch import LaunchDescription
+from launch_ros.actions import Node
+
+def generate_launch_description():
+    """Generate launch description for the {{.WorkflowName}} workflow."""
+    return LaunchDescription([
+        {{range .Executions}}
+        Node(
+            package='{{$.PackageName}}',
+            executable='{{.NodeNameClean}}',
+            name='{{.NodeNameClean}}',
+            output='screen',
+            parameters=[{
+                'node_id': '{{.NodeID}}',
+                'node_type': '{{.NodeType}}',
+            }],
+        ),
+        {{end}}
+    ])

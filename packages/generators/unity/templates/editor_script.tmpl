@@ -1,0 +1,25 @@
+using UnityEditor;
+using UnityEngine;
+using AistudioWorkflow.Runtime;
+
+namespace AistudioWorkflow.Editor
+{
+    /// <summary>
+    /// Editor utility for the AIStudio workflow.
+    /// </summary>
+    [CustomEditor(typeof(WorkflowRunner))]
+    public class WorkflowEditor : UnityEditor.Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            DrawDefaultInspector();
+
+            var runner = (WorkflowRunner)target;
+
+            if (GUILayout.Button("Execute Workflow"))
+            {
+                runner.ExecuteWorkflow();
+            }
+        }
+    }
+}

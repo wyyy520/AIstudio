@@ -1,0 +1,12 @@
+# AIStudio Generated Configuration
+# Workflow: {{.WorkflowName}} ({{.WorkflowID}})
+
+workflow:
+  id: {{.WorkflowID}}
+  name: {{.WorkflowName}}
+  version: {{.Version}}
+
+# Environment settings
+environment:
+  python_version: ">=3.9"
+  {{if .RequiresGPU}}gpu: required{{else}}gpu: optional{{end}}

@@ -1,0 +1,53 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace AistudioWorkflow.Runtime
+{
+    /// <summary>
+    /// Workflow runner - executes the AIStudio generated workflow.
+    /// </summary>
+    public class WorkflowRunner : MonoBehaviour
+    {
+        [Header("Workflow Configuration")]
+        [SerializeField] private bool runOnStart = true;
+
+        private Dictionary<string, object> state = new Dictionary<string, object>();
+
+        private void Start()
+        {
+            if (runOnStart)
+            {
+                ExecuteWorkflow();
+            }
+        }
+
+        public void ExecuteWorkflow()
+        {
+            Debug.Log("Starting workflow: {{.WorkflowName}}");
+
+            {{range .Executions}}
+            ExecuteNode("{{.NodeName}}", () =>
+            {
+                var node = new {{.ClassName}}();
+                node.Execute(state);
+            });
+            {{end}}
+
+            Debug.Log("Workflow completed successfully.");
+        }
+
+        private void ExecuteNode(string nodeName, Action action)
+        {
+            Debug.Log($"Executing node: {nodeName}");
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Node {nodeName} failed: {ex.Message}");
+            }
+        }
+    }
+}

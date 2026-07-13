@@ -1,0 +1,43 @@
+"""Data split module - generated from workflow node {{.NodeID}}."""
+
+import logging
+from typing import Any, Dict, Optional
+
+logger = logging.getLogger(__name__)
+
+
+class {{.ClassName}}:
+    """Splits dataset into training and validation sets."""
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
+        self.train_ratio = self.config.get("train_ratio", 0.8)
+        self.val_ratio = self.config.get("val_ratio", 1.0 - self.config.get("train_ratio", 0.8))
+        self.seed = self.config.get("seed", 42)
+        self.stratify = self.config.get("stratify", False)
+        logger.info(
+            "Initialized %s: train_ratio=%.2f, val_ratio=%.2f, seed=%d",
+            self.__class__.__name__, self.train_ratio, self.val_ratio, self.seed,
+        )
+
+    def execute(self, **inputs) -> Dict[str, Any]:
+        """
+        Split input data into training and validation sets.
+
+        Args:
+            **inputs: Must contain "dataset" key.
+
+        Returns:
+            Training and validation datasets.
+        """
+        logger.info("Splitting dataset")
+
+        dataset = inputs.get("dataset", inputs.get("preprocessed", {}))
+        if not dataset:
+            logger.warning("No data provided for splitting")
+            return {"train": {}, "val": {}}
+
+        return {
+            "train": {**dataset, "split": "train"},
+            "val": {**dataset, "split": "val"},
+        }

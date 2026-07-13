@@ -1,0 +1,55 @@
+{
+  "id": "yolo",
+  "name": "YOLO 目标检测",
+  "version": "2.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "algorithm",
+  "description": "YOLOv8 object detection, training, and export capabilities",
+  "author": "Ultralytics",
+  "nodes": [
+    {
+      "type": "model_trainer.yolo",
+      "name": "YOLO 训练",
+      "description": "训练 YOLOv8 模型",
+      "inputs": [
+        { "id": "dataset", "name": "数据集", "type": "dataset", "required": true }
+      ],
+      "outputs": [
+        { "id": "model", "name": "训练模型", "type": "model" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "model": { "type": "string", "default": "yolov8n.pt", "description": "预训练模型名称" },
+          "epochs": { "type": "integer", "default": 100, "minimum": 1, "maximum": 10000 },
+          "batch": { "type": "integer", "default": 16, "minimum": 1 },
+          "imgsz": { "type": "integer", "default": 640 },
+          "device": { "type": "string", "default": "cuda", "enum": ["cuda", "cpu", "mps"] }
+        },
+        "required": ["model"]
+      }
+    },
+    {
+      "type": "model_inference.yolo",
+      "name": "YOLO 目标检测",
+      "description": "使用 YOLOv8 检测图像中的目标",
+      "inputs": [
+        { "id": "image", "name": "图像", "type": "image", "required": true },
+        { "id": "model", "name": "模型", "type": "model", "required": true }
+      ],
+      "outputs": [
+        { "id": "detections", "name": "检测结果", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "conf": { "type": "number", "default": 0.25, "minimum": 0, "maximum": 1, "description": "置信度阈值" },
+          "iou": { "type": "number", "default": 0.45, "minimum": 0, "maximum": 1, "description": "IoU 阈值" },
+          "device": { "type": "string", "default": "cuda", "enum": ["cuda", "cpu"] }
+        }
+      }
+    }
+  ],
+  "runtime_bundle": "ultralytics",
+  "supported_targets": ["python"]
+}
