@@ -1,4 +1,32 @@
+// Package event — Event Topics and Data Types
+//
+// This file defines ALL event topics and their associated data structures
+// used across the AIStudio platform. Every event flowing through the EventBus
+// MUST use a Topic constant from this file and the corresponding EventData struct.
+//
+// Topic naming convention: "<domain>.<action>" (e.g. "compile.progress")
+//
+// Event domains:
+//   - Workflow: workflow lifecycle (created, updated, deleted, validated, compiled)
+//   - Compile: compilation pipeline stages (started, progress, completed, failed)
+//   - Runtime: execution lifecycle (started, preparing, running, completed, failed, log, progress)
+//   - Bundle: runtime dependency installation (install_started, progress, completed, failed)
+//   - Task: workflow execution tracking (created, started, completed, failed, cancelled, progress)
+//   - Plugin: plugin lifecycle (installed, uninstalled, updated, enabled, disabled, error)
+//   - Project: project management (created, updated, deleted, opened, closed)
+//   - Log: log entries and errors (entry, error, warning)
+//   - Diagnostic: error analysis (ready, error, fix_suggested)
+//   - Agent: AI agent activity (started, completed, workflow_generated, error)
+//   - Skill: skill/template management (applied, created, deleted)
+//   - Environment: env detection and bundle install (detecting, ready, error, bundle.*)
+//   - System: infrastructure events (startup, shutdown, config_reload, error)
+//
+// EngStudio.md §8 — Event Topics Reference
 package event
+
+// ============================================================================
+// Workflow Events
+// ============================================================================
 
 const (
 	TopicWorkflowCreated  Topic = "workflow.created"
@@ -18,6 +46,10 @@ type WorkflowEventData struct {
 
 func (d WorkflowEventData) EventTopic() Topic { return TopicWorkflowCreated }
 
+// ============================================================================
+// Compile Events — progress through the 10-stage compilation pipeline
+// ============================================================================
+
 const (
 	TopicCompileStarted   Topic = "compile.started"
 	TopicCompileCompleted Topic = "compile.completed"
@@ -35,6 +67,10 @@ type CompileEventData struct {
 }
 
 func (d CompileEventData) EventTopic() Topic { return TopicCompileStarted }
+
+// ============================================================================
+// Runtime Events — process execution lifecycle
+// ============================================================================
 
 const (
 	TopicRuntimeStarted   Topic = "runtime.started"
@@ -60,6 +96,10 @@ type RuntimeEventData struct {
 
 func (d RuntimeEventData) EventTopic() Topic { return TopicRuntimeStarted }
 
+// ============================================================================
+// Bundle Events — runtime dependency installation
+// ============================================================================
+
 const (
 	TopicBundleInstallStarted   Topic = "runtime:bundle_install_started"
 	TopicBundleInstallProgress  Topic = "runtime:bundle_install_progress"
@@ -77,6 +117,10 @@ type BundleInstallEventData struct {
 }
 
 func (d BundleInstallEventData) EventTopic() Topic { return TopicBundleInstallStarted }
+
+// ============================================================================
+// Task Events — workflow execution job tracking
+// ============================================================================
 
 const (
 	TopicTaskCreated   Topic = "task.created"
@@ -98,6 +142,10 @@ type TaskEventData struct {
 
 func (d TaskEventData) EventTopic() Topic { return TopicTaskStarted }
 
+// ============================================================================
+// Plugin Events — plugin lifecycle management
+// ============================================================================
+
 const (
 	TopicPluginInstalled   Topic = "plugin.installed"
 	TopicPluginUninstalled Topic = "plugin.uninstalled"
@@ -117,6 +165,10 @@ type PluginEventData struct {
 
 func (d PluginEventData) EventTopic() Topic { return TopicPluginInstalled }
 
+// ============================================================================
+// Project Events — filesystem project management
+// ============================================================================
+
 const (
 	TopicProjectCreated Topic = "project.created"
 	TopicProjectUpdated Topic = "project.updated"
@@ -134,6 +186,10 @@ type ProjectEventData struct {
 }
 
 func (d ProjectEventData) EventTopic() Topic { return TopicProjectCreated }
+
+// ============================================================================
+// Log Events — log entry and error notifications
+// ============================================================================
 
 const (
 	TopicLogEntry  Topic = "log.entry"
@@ -153,6 +209,10 @@ type LogEventData struct {
 
 func (d LogEventData) EventTopic() Topic { return TopicLogEntry }
 
+// ============================================================================
+// Diagnostic Events — AI-powered error analysis
+// ============================================================================
+
 const (
 	TopicDiagnosticReady         Topic = "diagnostic.ready"
 	TopicDiagnosticError         Topic = "diagnostic.error"
@@ -170,6 +230,10 @@ type DiagnosticEventData struct {
 
 func (d DiagnosticEventData) EventTopic() Topic { return TopicDiagnosticReady }
 
+// ============================================================================
+// Agent Events — AI agent conversation and workflow generation
+// ============================================================================
+
 const (
 	TopicAgentStarted              Topic = "agent.started"
 	TopicAgentCompleted            Topic = "agent.completed"
@@ -186,6 +250,10 @@ type AgentEventData struct {
 
 func (d AgentEventData) EventTopic() Topic { return TopicAgentStarted }
 
+// ============================================================================
+// Skill Events — skill/template management
+// ============================================================================
+
 const (
 	TopicSkillApplied Topic = "skill.applied"
 	TopicSkillCreated Topic = "skill.created"
@@ -201,6 +269,10 @@ type SkillEventData struct {
 }
 
 func (d SkillEventData) EventTopic() Topic { return TopicSkillApplied }
+
+// ============================================================================
+// Environment Events — env detection and bundle installation
+// ============================================================================
 
 const (
 	TopicEnvDetecting          Topic = "environment.detecting"
@@ -219,6 +291,10 @@ type EnvEventData struct {
 }
 
 func (d EnvEventData) EventTopic() Topic { return TopicEnvDetecting }
+
+// ============================================================================
+// System Events — infrastructure and lifecycle
+// ============================================================================
 
 const (
 	TopicSystemStartup     Topic = "system.startup"

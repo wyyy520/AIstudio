@@ -214,9 +214,32 @@ func (wf *Workflow) GenerateJSONSchema() map[string]any {
 				"type": "object",
 			},
 			"target": map[string]any{
-				"type": "string",
-				"enum": validTargets,
-			},
+					"type": "string",
+					"enum": validTargets,
+				},
+				"domain": map[string]any{
+					"type": "string",
+				},
+				"viewport": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"x":    map[string]any{"type": "number"},
+						"y":    map[string]any{"type": "number"},
+						"zoom": map[string]any{"type": "number"},
+					},
+				},
+				"plugins": map[string]any{
+					"type": "object",
+					"additionalProperties": map[string]any{
+						"type": "object",
+						"properties": map[string]any{
+							"id":      map[string]any{"type": "string"},
+							"name":    map[string]any{"type": "string"},
+							"version": map[string]any{"type": "string"},
+							"enabled": map[string]any{"type": "boolean"},
+						},
+					},
+				},
 			"nodes": map[string]any{
 				"type":     "array",
 				"items":    wf.generateNodeSchema(validNodeTypes, validDataTypes),
@@ -287,19 +310,26 @@ func (wf *Workflow) generateNodeSchema(validNodeTypes, validDataTypes []string) 
 				"items": portSchema,
 			},
 			"constraints": map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"min_inputs":      map[string]any{"type": "integer"},
-					"max_inputs":      map[string]any{"type": "integer"},
-					"min_outputs":     map[string]any{"type": "integer"},
-					"max_outputs":     map[string]any{"type": "integer"},
-					"required_config": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-					"allowed_types":   map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+					"type": "object",
+					"properties": map[string]any{
+						"min_inputs":      map[string]any{"type": "integer"},
+						"max_inputs":      map[string]any{"type": "integer"},
+						"min_outputs":     map[string]any{"type": "integer"},
+						"max_outputs":     map[string]any{"type": "integer"},
+						"required_config": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+						"allowed_types":   map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+					},
 				},
+				"status":     map[string]any{"type": "string"},
+				"enabled":    map[string]any{"type": "boolean"},
+				"plugin":     map[string]any{"type": "string"},
+				"domain":     map[string]any{"type": "string"},
+				"metadata":   map[string]any{"type": "object"},
+				"created_at": map[string]any{"type": "string", "format": "date-time"},
+				"updated_at": map[string]any{"type": "string", "format": "date-time"},
 			},
-		},
+		}
 	}
-}
 
 // generateEdgeSchema returns the JSON Schema for a workflow edge.
 func (wf *Workflow) generateEdgeSchema() map[string]any {
@@ -312,13 +342,26 @@ func (wf *Workflow) generateEdgeSchema() map[string]any {
 		},
 	}
 
+	conditionSchema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"expression":  map[string]any{"type": "string"},
+			"true_label":  map[string]any{"type": "string"},
+			"false_label": map[string]any{"type": "string"},
+		},
+	}
+
 	return map[string]any{
 		"type":     "object",
 		"required": []string{"id", "source", "target"},
 		"properties": map[string]any{
-			"id":     map[string]any{"type": "string", "minLength": 1},
-			"source": endpointSchema,
-			"target": endpointSchema,
+			"id":        map[string]any{"type": "string", "minLength": 1},
+			"source":    endpointSchema,
+			"target":    endpointSchema,
+			"label":     map[string]any{"type": "string"},
+			"type":      map[string]any{"type": "string", "enum": []string{"data", "control", "condition"}},
+			"condition": conditionSchema,
+			"metadata":  map[string]any{"type": "object"},
 		},
 	}
 }

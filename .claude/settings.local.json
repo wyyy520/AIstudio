@@ -12,7 +12,13 @@
       "PowerShell(Get-Content \"$env:TEMP\\\\final_test.log\" -TotalCount 30)",
       "PowerShell(Get-Content \"$env:TEMP\\\\final_test_err.log\" -TotalCount 30)",
       "PowerShell(Get-Content \"$env:TEMP\\\\final_stderr.log\" | Select-String \"plugin\")",
-      "PowerShell(Get-Content \"$env:TEMP\\\\int_stderr.log\" | Select-String \"error|Error|ERROR|warn|WARN|fail|Fail\")"
+      "PowerShell(Get-Content \"$env:TEMP\\\\int_stderr.log\" | Select-String \"error|Error|ERROR|warn|WARN|fail|Fail\")",
+      "Bash(npm install *)",
+      "Bash(cp -r apps/desktop/dist/* apps/backend/cmd/web/)",
+      "Bash(echo \"copy exit: $?\")",
+      "Bash(echo \"build exit: $?\")",
+      "Bash(go test *)",
+      "Bash(go vet *)"
     ]
   }
 }

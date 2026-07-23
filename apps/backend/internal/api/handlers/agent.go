@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/aistudio/backend/internal/agent"
 	"github.com/aistudio/backend/internal/service"
 	"github.com/gin-gonic/gin"
 )
@@ -22,14 +24,16 @@ func NewAgentHandler(svc *service.AgentService) *AgentHandler {
 // Chat processes an agent chat message and streams the response via SSE.
 // POST /api/agent/chat
 func (h *AgentHandler) Chat(c *gin.Context) {
+	// Step 1: Set SSE headers (must happen before any writes to the body)
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Header("X-Accel-Buffering", "no")
 
+	// Step 2: Parse request
 	var req service.ChatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		writeSSEEvent(c.Writer, "error", fmt.Sprintf(`{"code":"invalid_request","message":"%s"}`, err.Error()))
+		writeSSEEvent(c.Writer, "error", fmt.Sprintf(`{"code":"invalid_request","message":"%s"}`, escapeJSON(err.Error())))
 		return
 	}
 
@@ -39,35 +43,38 @@ func (h *AgentHandler) Chat(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.svc.Chat(c.Request.Context(), req)
-	if err != nil {
-		writeSSEEvent(c.Writer, "error", fmt.Sprintf(`{"code":"chat_error","message":"%s"}`, err.Error()))
-		flusher.Flush()
-		return
-	}
-
-	writeSSEEvent(c.Writer, "action", `{"type":"planning","description":"Planning the response"}`)
-	flusher.Flush()
-
-	summary := resp.Summary
-	if summary != "" {
-		chunkSize := 5
-		for i := 0; i < len(summary); i += chunkSize {
-			end := i + chunkSize
-			if end > len(summary) {
-				end = len(summary)
-			}
-			chunk := summary[i:end]
-			chunk = strings.ReplaceAll(chunk, "\\", "\\\\")
-			chunk = strings.ReplaceAll(chunk, "\"", "\\\"")
-			chunk = strings.ReplaceAll(chunk, "\n", "\\n")
-			writeSSEEvent(c.Writer, "token", fmt.Sprintf(`{"text":"%s"}`, chunk))
-			flusher.Flush()
+	// Step 3: Stream agent processing in real time
+	// The callback receives events AS the agent plans and executes — no artificial chunking.
+	_, err := h.svc.StreamChat(c.Request.Context(), req, func(evt agent.StreamEvent) {
+		switch evt.Type {
+		case "action":
+			metaJSON, _ := json.Marshal(evt.Meta)
+			writeSSEEvent(c.Writer, "action", fmt.Sprintf(`{"text":%q,"meta":%s}`, evt.Content, string(metaJSON)))
+		case "token":
+			writeSSEEvent(c.Writer, "token", fmt.Sprintf(`{"text":%q}`, evt.Content))
+		case "done":
+			metaJSON, _ := json.Marshal(evt.Meta)
+			writeSSEEvent(c.Writer, "done", fmt.Sprintf(`{"reason":"stop","meta":%s}`, string(metaJSON)))
+		case "error":
+			writeSSEEvent(c.Writer, "error", fmt.Sprintf(`{"code":"agent_error","message":%q}`, evt.Content))
 		}
-	}
+		flusher.Flush()
+	})
 
-	writeSSEEvent(c.Writer, "done", fmt.Sprintf(`{"reason":"stop","workflowId":"%s"}`, resp.WorkflowID))
-	flusher.Flush()
+	if err != nil {
+		writeSSEEvent(c.Writer, "error", fmt.Sprintf(`{"code":"chat_error","message":%q}`, escapeJSON(err.Error())))
+		flusher.Flush()
+	}
+}
+
+// escapeJSON escapes a string for safe inclusion in a JSON string value.
+func escapeJSON(s string) string {
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "\"", "\\\"")
+	s = strings.ReplaceAll(s, "\n", "\\n")
+	s = strings.ReplaceAll(s, "\r", "\\r")
+	s = strings.ReplaceAll(s, "\t", "\\t")
+	return s
 }
 
 func writeSSEEvent(w http.ResponseWriter, event string, data string) {
@@ -92,9 +99,9 @@ func (h *AgentHandler) PlanOnly(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"code": 0, "message": "success", "data": plan})
 }
 
-// GenerateWorkflow generates a workflow from a natural language requirement.
+// GenerateWorkflow generates a workflow JSON directly from a natural language requirement.
 // POST /api/agent/generate-workflow
-// Delegates to the agent's Chat flow; the agent creates the workflow via its tools.
+// Uses LLM to produce a complete workflow definition without running the agent pipeline.
 func (h *AgentHandler) GenerateWorkflow(c *gin.Context) {
 	var req struct {
 		Requirement string `json:"requirement" binding:"required"`
@@ -106,12 +113,8 @@ func (h *AgentHandler) GenerateWorkflow(c *gin.Context) {
 		return
 	}
 
-	chatReq := service.ChatRequest{
-		Message:   req.Requirement,
-		ProjectID: req.ProjectID,
-		UserID:    req.UserID,
-	}
-	resp, err := h.svc.Chat(c.Request.Context(), chatReq)
+	// Call the dedicated workflow generator (single LLM call, no agent pipeline)
+	result, err := h.svc.GenerateWorkflowFromNL(c.Request.Context(), req.ProjectID, req.Requirement)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "message": err.Error()})
 		return
@@ -121,10 +124,7 @@ func (h *AgentHandler) GenerateWorkflow(c *gin.Context) {
 		"code":    0,
 		"message": "success",
 		"data": gin.H{
-			"workflow_id": resp.WorkflowID,
-			"summary":     resp.Summary,
-			"status":      resp.Status,
-			"steps":       resp.Steps,
+			"workflow": result,
 		},
 	})
 }

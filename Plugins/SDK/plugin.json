@@ -1,0 +1,12 @@
+{
+  "id": "sdk-tools",
+  "name": "SDK 开发工具包",
+  "version": "1.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "runtime",
+  "description": "提供 Plugin SDK、Node SDK、Generator SDK、Runtime SDK、Skill SDK 等开发工具包",
+  "author": "AIStudio",
+  "nodes": [],
+  "capabilities": ["plugin-sdk", "node-sdk", "generator-sdk", "runtime-sdk", "skill-sdk", "provider-sdk", "template-sdk"],
+  "supported_targets": ["python", "nodejs", "go"]
+}

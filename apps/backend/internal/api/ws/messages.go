@@ -13,6 +13,7 @@ const (
 	MsgTypeNodeLog          MessageType = "node_log"
 	MsgTypeTaskDone         MessageType = "task_done"
 	MsgTypeWorkflowProgress MessageType = "workflow_progress"
+	MsgTypeCompileProgress  MessageType = "compile_progress"
 )
 
 type Message struct {

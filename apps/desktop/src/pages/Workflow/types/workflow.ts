@@ -203,7 +203,7 @@ export const NODE_STATUS_COLORS: Record<NodeStatus, string> = {
 export type ValidationSeverity = 'error' | 'warning' | 'info'
 
 export interface ValidationError {
-  type: 'missing-input' | 'param-error' | 'env-error' | 'connection-error' | 'type-mismatch'
+  type: 'missing-input' | 'param-error' | 'env-error' | 'env-warning' | 'connection-error' | 'type-mismatch'
   nodeId: string
   message: string
   severity: ValidationSeverity

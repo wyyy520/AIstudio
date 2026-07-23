@@ -1,3 +1,26 @@
+// Package workflow defines the Workflow DSL — the single source of truth
+// for the entire AIStudio platform.
+//
+// A Workflow is a declarative DAG (Directed Acyclic Graph) that describes
+// an AI engineering pipeline. It contains only declaration data — no runtime
+// state, no execution logic, no business rules.
+//
+// This file defines:
+//   - Core data types: Workflow, Node, Edge, Port, Target, DataType
+//   - Control flow node types: condition, loop, switch, retry
+//   - Validation framework: schema, DAG, data types, required inputs
+//   - DAG operations: topological sort, upstream/downstream, execution levels
+//   - Type compatibility matrix for port connections
+//
+// The purpose of separating declaration from execution is to keep the DSL
+// clean and portable — Workflow JSON can be serialized, shared, versioned,
+// and compiled to any target platform without modification.
+//
+// Architecture:
+//
+//	Workflow (JSON/YAML) → Compiler → Generator → Project (code on disk) → Runtime (execution)
+//
+// EngStudio.md §3.7 — Workflow DSL
 package workflow
 
 import (
@@ -7,10 +30,12 @@ import (
 	"time"
 )
 
+// init triggers lazy initialization on package load.
 func init() {
 	initCompat()
 }
 
+// Cached lookup tables — computed once via sync.Once, reused globally.
 var (
 	onceValidNodeTypes sync.Once
 	cachedValidNodeTypes []NodeType
@@ -28,6 +53,10 @@ var (
 	}
 )
 
+// ============================================================================
+// Section 1: Core Data Types — Workflow, Node, Edge, Port
+// ============================================================================
+
 // Workflow represents a complete AI engineering workflow.
 // It is the single source of truth for the entire platform.
 // Workflow contains only declaration data — no runtime state.
@@ -38,10 +67,13 @@ type Workflow struct {
 	Description   string            `json:"description,omitempty" yaml:"description,omitempty"`
 	Version       int               `json:"version" yaml:"version"`
 	Author        string            `json:"author,omitempty" yaml:"author,omitempty"`
+	Domain        string            `json:"domain,omitempty" yaml:"domain,omitempty"`
 	Tags          []string          `json:"tags,omitempty" yaml:"tags,omitempty"`
 	Metadata      map[string]any    `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Variables     map[string]any    `json:"variables,omitempty" yaml:"variables,omitempty"`
 	Target        Target            `json:"target" yaml:"target"`
+	Viewport      *Viewport         `json:"viewport,omitempty" yaml:"viewport,omitempty"`
+	Plugins       map[string]PluginInfo `json:"plugins,omitempty" yaml:"plugins,omitempty"`
 	Nodes         []Node            `json:"nodes" yaml:"nodes"`
 	Edges         []Edge            `json:"edges" yaml:"edges"`
 	CreatedAt     time.Time         `json:"created_at,omitempty" yaml:"created_at,omitempty"`
@@ -54,20 +86,47 @@ type WorkflowFile struct {
 	FilePath string    `json:"file_path"`
 }
 
+// Viewport represents the canvas viewport state.
+type Viewport struct {
+	X    float64 `json:"x" yaml:"x"`
+	Y    float64 `json:"y" yaml:"y"`
+	Zoom float64 `json:"zoom" yaml:"zoom"`
+}
+
+// PluginInfo describes a plugin used by a node or workflow.
+type PluginInfo struct {
+	ID      string `json:"id" yaml:"id"`
+	Name    string `json:"name" yaml:"name"`
+	Version string `json:"version" yaml:"version"`
+	Enabled bool   `json:"enabled" yaml:"enabled"`
+	Config  map[string]any `json:"config,omitempty" yaml:"config,omitempty"`
+}
+
 // Node represents a single step in the workflow DAG.
 // It is a pure declaration — no runtime state.
 type Node struct {
-	ID          string         `json:"id" yaml:"id"`
-	Type        NodeType       `json:"type" yaml:"type"`
-	Name        string         `json:"name" yaml:"name"`
-	Description string         `json:"description,omitempty" yaml:"description,omitempty"`
-	Position    Point          `json:"position" yaml:"position"`
-	Size        *Size          `json:"size,omitempty" yaml:"size,omitempty"`
-	Config      map[string]any `json:"config,omitempty" yaml:"config,omitempty"`
-	Inputs      []Port         `json:"inputs,omitempty" yaml:"inputs,omitempty"`
-	Outputs     []Port         `json:"outputs,omitempty" yaml:"outputs,omitempty"`
-	Constraints *Constraints   `json:"constraints,omitempty" yaml:"constraints,omitempty"`
+	ID          string            `json:"id" yaml:"id"`
+	Type        NodeType          `json:"type" yaml:"type"`
+	Name        string            `json:"name" yaml:"name"`
+	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
+	Position    Point             `json:"position" yaml:"position"`
+	Size        *Size             `json:"size,omitempty" yaml:"size,omitempty"`
+	Config      map[string]any    `json:"config,omitempty" yaml:"config,omitempty"`
+	Inputs      []Port            `json:"inputs,omitempty" yaml:"inputs,omitempty"`
+	Outputs     []Port            `json:"outputs,omitempty" yaml:"outputs,omitempty"`
+	Constraints *Constraints      `json:"constraints,omitempty" yaml:"constraints,omitempty"`
+	Status      string            `json:"status,omitempty" yaml:"status,omitempty"`
+	Enabled     *bool             `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Plugin      string            `json:"plugin,omitempty" yaml:"plugin,omitempty"`
+	Domain      string            `json:"domain,omitempty" yaml:"domain,omitempty"`
+	Metadata    map[string]any    `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	CreatedAt   time.Time         `json:"created_at,omitempty" yaml:"created_at,omitempty"`
+	UpdatedAt   time.Time         `json:"updated_at,omitempty" yaml:"updated_at,omitempty"`
 }
+
+// ============================================================================
+// Section 2: Node Type & Control Flow Constants
+// ============================================================================
 
 // NodeType identifies the type of workflow node.
 type NodeType string
@@ -99,9 +158,20 @@ const (
 
 // Edge represents a connection between two nodes in the workflow DAG.
 type Edge struct {
-	ID     string       `json:"id" yaml:"id"`
-	Source EdgeEndpoint `json:"source" yaml:"source"`
-	Target EdgeEndpoint `json:"target" yaml:"target"`
+	ID        string         `json:"id" yaml:"id"`
+	Source    EdgeEndpoint   `json:"source" yaml:"source"`
+	Target    EdgeEndpoint   `json:"target" yaml:"target"`
+	Label     string         `json:"label,omitempty" yaml:"label,omitempty"`
+	Type      string         `json:"type,omitempty" yaml:"type,omitempty"`
+	Condition *EdgeCondition `json:"condition,omitempty" yaml:"condition,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+}
+
+// EdgeCondition defines a conditional branch on an edge.
+type EdgeCondition struct {
+	Expression  string `json:"expression" yaml:"expression"`
+	TrueLabel   string `json:"true_label,omitempty" yaml:"true_label,omitempty"`
+	FalseLabel  string `json:"false_label,omitempty" yaml:"false_label,omitempty"`
 }
 
 // EdgeEndpoint identifies a specific port on a node.
@@ -118,6 +188,10 @@ type Port struct {
 	Description string   `json:"description,omitempty" yaml:"description,omitempty"`
 	Required    bool     `json:"required,omitempty" yaml:"required,omitempty"`
 }
+
+// ============================================================================
+// Section 3: Port Data Types & Target Platforms
+// ============================================================================
 
 // DataType represents the type of data flowing through a port.
 type DataType string
@@ -207,7 +281,7 @@ type RetryConfig struct {
 }
 
 // ============================================================================
-// Validation
+// Section 4: Validation — Schema, DAG, Data Types, Required Inputs
 // ============================================================================
 
 // ValidationError represents a workflow validation error.
@@ -599,7 +673,7 @@ func isTypeCompatible(sourceType, targetType DataType) bool {
 }
 
 // ============================================================================
-// Valid Helpers
+// Section 5: Valid Enum Lookups (cached, O(1))
 // ============================================================================
 
 // ValidTargets returns all valid target platforms. Result is cached.
@@ -717,10 +791,11 @@ func ValidDataTypes() []DataType {
 }
 
 // ============================================================================
-// DAG (Directed Acyclic Graph) Operations
+// Section 6: DAG Operations — Sort, Traverse, Query
 // ============================================================================
 
 // TopologicalSort performs a topological sort of the workflow nodes.
+// Uses Kahn's algorithm: BFS with in-degree tracking.
 func TopologicalSort(wf *Workflow) ([]Node, error) {
 	inDegree := make(map[string]int)
 	adjList := make(map[string][]string)

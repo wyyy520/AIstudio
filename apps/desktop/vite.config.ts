@@ -30,6 +30,12 @@ export default defineConfig(({ mode }) => {
     build: {
       target: 'esnext',
       outDir: 'dist',
+      rollupOptions: {
+        external: [
+          '@tauri-apps/plugin-fs',
+          '@tauri-apps/plugin-dialog',
+        ],
+      },
     },
   }
 })

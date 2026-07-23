@@ -144,7 +144,7 @@ func (g *Generator) Plan(ctx context.Context, wf *common.Workflow, opts common.C
 func (g *Generator) Generate(ctx context.Context, wf *common.Workflow, opts common.CompileOptions) (*common.GenerateResult, error) {
 	projectName := opts.ProjectName
 	if projectName == "" {
-		projectName = sanitizeName(wf.Name)
+		projectName = common.SanitizeName(wf.Name)
 	}
 
 	outputDir := opts.OutputDir
@@ -170,17 +170,17 @@ func (g *Generator) Generate(ctx context.Context, wf *common.Workflow, opts comm
 
 	var files []common.GeneratedFile
 
-	// Generate all project files
-	files = append(files, g.renderFile("main.py.tmpl", td, "main.py", 0755)...)
-	files = append(files, g.renderFile("pyproject.toml.tmpl", td, "pyproject.toml", 0644)...)
-	files = append(files, g.renderFile("requirements.txt.tmpl", td, "requirements.txt", 0644)...)
-	files = append(files, g.renderFile("README.md.tmpl", td, "README.md", 0644)...)
-	files = append(files, g.renderFile("gitignore.tmpl", td, ".gitignore", 0644)...)
-	files = append(files, g.renderFile("config_yaml.tmpl", td, "config/config.yaml", 0644)...)
-	files = append(files, g.renderFile("src_init.py.tmpl", td, "src/__init__.py", 0644)...)
-	files = append(files, g.renderFile("src_utils.py.tmpl", td, "src/utils.py", 0644)...)
-	files = append(files, g.renderFile("tests_init.py.tmpl", td, "tests/__init__.py", 0644)...)
-	files = append(files, g.renderFile("tests_main.py.tmpl", td, "tests/test_main.py", 0644)...)
+	// Generate all project files using shared template renderer
+	files = append(files, common.RenderToFiles(templateFS, "templates/main.py.tmpl", td, "main.py", 0755)...)
+	files = append(files, common.RenderToFiles(templateFS, "templates/pyproject.toml.tmpl", td, "pyproject.toml", 0644)...)
+	files = append(files, common.RenderToFiles(templateFS, "templates/requirements.txt.tmpl", td, "requirements.txt", 0644)...)
+	files = append(files, common.RenderToFiles(templateFS, "templates/README.md.tmpl", td, "README.md", 0644)...)
+	files = append(files, common.RenderToFiles(templateFS, "templates/gitignore.tmpl", td, ".gitignore", 0644)...)
+	files = append(files, common.RenderToFiles(templateFS, "templates/config_yaml.tmpl", td, "config/config.yaml", 0644)...)
+	files = append(files, common.RenderToFiles(templateFS, "templates/src_init.py.tmpl", td, "src/__init__.py", 0644)...)
+	files = append(files, common.RenderToFiles(templateFS, "templates/src_utils.py.tmpl", td, "src/utils.py", 0644)...)
+	files = append(files, common.RenderToFiles(templateFS, "templates/tests_init.py.tmpl", td, "tests/__init__.py", 0644)...)
+	files = append(files, common.RenderToFiles(templateFS, "templates/tests_main.py.tmpl", td, "tests/test_main.py", 0644)...)
 
 	// Generate per-node source files
 	for _, nd := range td.Nodes {
@@ -191,15 +191,15 @@ func (g *Generator) Generate(ctx context.Context, wf *common.Workflow, opts comm
 			NodeType   string
 			ClassName  string
 		}{
-			ModuleName: sanitizeName(nd.Name),
+			ModuleName: common.SanitizeName(nd.Name),
 			NodeID:     nd.ID,
 			NodeName:   nd.Name,
 			NodeType:   nd.Type,
-			ClassName:  toClassName(nd.Name),
+			ClassName:  common.ToClassName(nd.Name),
 		}
 
-		tmplName := g.nodeTypeToTemplate(nd.Type, isYOLO)
-		files = append(files, g.renderFile(tmplName, nodeTD, fmt.Sprintf("src/%s.py", sanitizeName(nd.Name)), 0644)...)
+		tmplName := fmt.Sprintf("templates/%s", g.nodeTypeToTemplate(nd.Type, isYOLO))
+		files = append(files, common.RenderToFiles(templateFS, tmplName, nodeTD, fmt.Sprintf("src/%s.py", common.SanitizeName(nd.Name)), 0644)...)
 	}
 
 	// workflow.json copy
@@ -264,8 +264,8 @@ func (g *Generator) buildTemplateData(wf *common.Workflow, projectName string, i
 		}
 		td.Nodes = append(td.Nodes, nd)
 
-		moduleName := sanitizeName(n.Name)
-		className := toClassName(n.Name)
+		moduleName := common.SanitizeName(n.Name)
+		className := common.ToClassName(n.Name)
 
 		td.Imports = append(td.Imports, importData{
 			ModuleName: moduleName,
@@ -280,34 +280,6 @@ func (g *Generator) buildTemplateData(wf *common.Workflow, projectName string, i
 	}
 
 	return td
-}
-
-func (g *Generator) renderFile(tmplName string, data any, outputPath string, mode uint32) []common.GeneratedFile {
-	tmplContent, err := templateFS.ReadFile(path.Join("templates", tmplName))
-	if err != nil {
-		return nil
-	}
-
-	funcMap := template.FuncMap{
-		"lower": strings.ToLower,
-		"upper": strings.ToUpper,
-	}
-
-	tmpl := template.New(tmplName).Funcs(funcMap)
-
-	tmpl, err = tmpl.Parse(string(tmplContent))
-	if err != nil {
-		return nil
-	}
-
-	var buf strings.Builder
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return nil
-	}
-
-	return []common.GeneratedFile{
-		{Path: outputPath, Content: buf.String(), Mode: mode},
-	}
 }
 
 func (g *Generator) isYOLOWorkflow(wf *common.Workflow) bool {

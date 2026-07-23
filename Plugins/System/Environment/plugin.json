@@ -1,0 +1,48 @@
+{
+  "id": "environment-manager",
+  "name": "环境管理器",
+  "version": "1.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "runtime",
+  "description": "开发环境检测、配置与管理插件，支持 Python/CUDA/MATLAB/STM32 环境自动配置",
+  "author": "AIStudio",
+  "nodes": [
+    {
+      "type": "system.env_detect",
+      "name": "环境检测",
+      "description": "检测当前开发环境配置",
+      "inputs": [],
+      "outputs": [
+        { "id": "report", "name": "环境报告", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "check_python": { "type": "boolean", "default": true },
+          "check_cuda": { "type": "boolean", "default": true },
+          "check_matlab": { "type": "boolean", "default": false },
+          "check_stm32": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    {
+      "type": "system.env_install",
+      "name": "依赖安装",
+      "description": "安装 Python 包依赖",
+      "inputs": [
+        { "id": "requirements", "name": "依赖列表", "type": "file", "required": true }
+      ],
+      "outputs": [
+        { "id": "result", "name": "安装结果", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "installer": { "type": "string", "default": "pip", "enum": ["pip", "conda", "poetry", "uv"], "description": "包管理器" },
+          "extra_args": { "type": "string", "description": "额外参数" }
+        }
+      }
+    }
+  ],
+  "supported_targets": ["python"]
+}

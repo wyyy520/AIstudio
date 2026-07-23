@@ -25,6 +25,15 @@ func NewExecutor(tools *ToolRegistry, ctx *ContextManager) *Executor {
 // Execute runs all steps in the action plan sequentially.
 // It stops on the first failure unless continueOnError is true.
 func (e *Executor) Execute(ctx context.Context, plan *ActionPlan, continueOnError bool) []StepResult {
+	return e.ExecuteWithCallback(ctx, plan, continueOnError, nil)
+}
+
+// StepCallback is called after each action step completes.
+type StepCallback func(stepNum int, action Action, result StepResult)
+
+// ExecuteWithCallback runs all steps with a callback fired after each step completes.
+// The callback is called synchronously in the execution goroutine.
+func (e *Executor) ExecuteWithCallback(ctx context.Context, plan *ActionPlan, continueOnError bool, cb StepCallback) []StepResult {
 	log.Printf("[executor] executing plan: %s (%d steps)", plan.Goal, len(plan.Steps))
 
 	var results []StepResult
@@ -36,21 +45,28 @@ func (e *Executor) Execute(ctx context.Context, plan *ActionPlan, continueOnErro
 		// Check context cancellation
 		select {
 		case <-ctx.Done():
-			results = append(results, StepResult{
+			result := StepResult{
 				Step:      stepNum,
 				Tool:      action.Tool,
 				Success:   false,
 				Error:     "execution cancelled",
 				Timestamp: time.Now(),
-			})
+			}
+			results = append(results, result)
+			if cb != nil {
+				cb(stepNum, action, result)
+			}
 			return results
 		default:
 		}
 
 		result := e.executeStep(ctx, stepNum, action)
-
 		results = append(results, result)
 		e.context.AddStepResult(result)
+
+		if cb != nil {
+			cb(stepNum, action, result)
+		}
 
 		// Stop on failure unless continueOnError
 		if !result.Success && !continueOnError {

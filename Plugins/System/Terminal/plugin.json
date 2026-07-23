@@ -1,0 +1,51 @@
+{
+  "id": "terminal-emulator",
+  "name": "终端模拟器",
+  "version": "1.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "runtime",
+  "description": "在工作流中执行 Shell 命令和脚本",
+  "author": "AIStudio",
+  "nodes": [
+    {
+      "type": "system.terminal",
+      "name": "终端命令",
+      "description": "在工作流中执行 Shell 命令",
+      "inputs": [
+        { "id": "command", "name": "命令", "type": "text", "required": true }
+      ],
+      "outputs": [
+        { "id": "stdout", "name": "标准输出", "type": "text" },
+        { "id": "stderr", "name": "错误输出", "type": "text" },
+        { "id": "exit_code", "name": "退出码", "type": "number" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "shell": { "type": "string", "default": "bash", "enum": ["bash", "sh", "zsh", "powershell", "cmd"], "description": "Shell 类型" },
+          "workdir": { "type": "string", "description": "工作目录" },
+          "timeout": { "type": "integer", "default": 60, "minimum": 1, "description": "超时（秒）" },
+          "env": { "type": "object", "description": "环境变量" }
+        }
+      }
+    },
+    {
+      "type": "system.script",
+      "name": "脚本执行",
+      "description": "执行脚本文件",
+      "inputs": [
+        { "id": "script", "name": "脚本文件", "type": "file", "required": true }
+      ],
+      "outputs": [
+        { "id": "result", "name": "执行结果", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "args": { "type": "array", "description": "脚本参数" }
+        }
+      }
+    }
+  ],
+  "supported_targets": ["python", "generic"]
+}

@@ -38,12 +38,12 @@ export async function updateEngineConfig(data: Partial<AppSettings['engine']>): 
   return (res as unknown as { data: AppSettings['engine'] }).data
 }
 
-export async function testEngineConnection(config: Partial<AppSettings['engine']>): Promise<boolean> {
+export async function testEngineConnection(config: Partial<AppSettings['engine']>): Promise<{ success: boolean; message: string }> {
   try {
     const res = await http.post('/settings/engine/test', config)
-    const data = res as unknown as { data: { success: boolean } }
-    return data.data?.success ?? false
-  } catch {
-    return false
+    const data = res as unknown as { data: { success: boolean; message?: string } }
+    return { success: data.data?.success ?? false, message: data.data?.message || '' }
+  } catch (e: any) {
+    return { success: false, message: e?.message || 'Connection failed' }
   }
 }

@@ -49,13 +49,36 @@ func (a *Agent) Memory() *Memory {
 	return a.memory
 }
 
-// Process handles a user message end-to-end:
-//  1. Plan: Analyze the message and generate an action plan
-//  2. Execute: Run the plan steps sequentially
-//  3. Respond: Return a structured response
+// StreamEvent represents a real-time event emitted during agent processing.
+type StreamEvent struct {
+	Type    string      `json:"type"`    // "token", "action", "done", "error"
+	Content string      `json:"content"` // human-readable text content
+	Meta    interface{} `json:"meta"`    // optional structured metadata
+}
+
+// StreamCallback is called with each StreamEvent during processing.
+// The callback should be non-blocking; if nil, events are discarded.
+type StreamCallback func(evt StreamEvent)
+
+// Process handles a user message end-to-end (non-streaming).
+// Use StreamProcess for real-time SSE feedback.
 func (a *Agent) Process(ctx context.Context, message, projectID, userID string, plugins []string, envStatus string) (*AgentResponse, error) {
+	return a.StreamProcess(ctx, message, projectID, userID, plugins, envStatus, nil)
+}
+
+// StreamProcess handles a user message end-to-end with real-time streaming callbacks:
+//  1. Plan: Analyze the message and generate an action plan
+//  2. Execute: Run the plan steps sequentially (each step fires "step_start" / "step_done")
+//  3. Respond: Build summary and stream via "token" events, then "done"
+func (a *Agent) StreamProcess(ctx context.Context, message, projectID, userID string, plugins []string, envStatus string, cb StreamCallback) (*AgentResponse, error) {
 	start := time.Now()
 	log.Printf("[agent] processing message: project=%s user=%s message=%q", projectID, userID, message)
+
+	emit := func(evt StreamEvent) {
+		if cb != nil {
+			cb(evt)
+		}
+	}
 
 	// Set up context
 	a.context.SetProject(projectID)
@@ -77,12 +100,15 @@ func (a *Agent) Process(ctx context.Context, message, projectID, userID string, 
 	}
 
 	// ---- Phase 1: Plan ----
+	emit(StreamEvent{Type: "action", Content: "Analyzing your request...", Meta: map[string]string{"phase": "planning"}})
+
 	toolInfos := a.tools.List()
 	chatCtx := ChatContext{ProjectID: projectID, UserID: userID}
 
 	plan, err := a.planner.Plan(chatCtx, message, toolInfos, plugins, envStatus)
 	if err != nil {
 		log.Printf("[agent] planning failed: %v", err)
+		emit(StreamEvent{Type: "action", Content: "Planning failed, using fallback...", Meta: map[string]string{"phase": "planning_error"}})
 		return &AgentResponse{
 			Goal:        "error",
 			Explanation: fmt.Sprintf("Failed to understand your request: %v", err),
@@ -92,6 +118,12 @@ func (a *Agent) Process(ctx context.Context, message, projectID, userID string, 
 
 	a.context.SetGoal(plan.Goal)
 	a.context.SetActionPlan(plan)
+
+	emit(StreamEvent{Type: "action", Content: plan.Explanation, Meta: map[string]interface{}{
+		"phase": "plan_ready",
+		"goal":  plan.Goal,
+		"steps": len(plan.Steps),
+	}})
 
 	// Save agent's plan to conversation
 	if a.memory != nil {
@@ -106,7 +138,23 @@ func (a *Agent) Process(ctx context.Context, message, projectID, userID string, 
 	}
 
 	// ---- Phase 2: Execute ----
-	steps := a.executor.Execute(ctx, plan, false)
+	steps := a.executor.ExecuteWithCallback(ctx, plan, false, func(stepNum int, action Action, result StepResult) {
+		if result.Success {
+			emit(StreamEvent{Type: "action", Content: fmt.Sprintf("Step %d/%d: %s - OK", stepNum, len(plan.Steps), action.Tool), Meta: map[string]interface{}{
+				"phase":   "step_done",
+				"step":    stepNum,
+				"tool":    action.Tool,
+				"success": true,
+			}})
+		} else {
+			emit(StreamEvent{Type: "action", Content: fmt.Sprintf("Step %d/%d: %s - Failed: %s", stepNum, len(plan.Steps), action.Tool, result.Error), Meta: map[string]interface{}{
+				"phase":   "step_done",
+				"step":    stepNum,
+				"tool":    action.Tool,
+				"success": false,
+			}})
+		}
+	})
 
 	// ---- Phase 3: Build Response ----
 	status := "completed"
@@ -123,11 +171,23 @@ func (a *Agent) Process(ctx context.Context, message, projectID, userID string, 
 
 	summary := buildSummary(plan, steps, allSuccess)
 
+	// Stream summary tokens naturally for real-time display
+	for _, r := range summary {
+		emit(StreamEvent{Type: "token", Content: string(r)})
+	}
+
 	// Add agent response to history
 	a.context.AddMessage(Message{Role: "assistant", Content: summary})
 
 	duration := time.Since(start)
 	log.Printf("[agent] request completed in %v: status=%s steps=%d", duration, status, len(steps))
+
+	emit(StreamEvent{Type: "done", Content: "", Meta: map[string]interface{}{
+		"status":  status,
+		"steps":   len(steps),
+		"goal":    plan.Goal,
+		"elapsed": duration.String(),
+	}})
 
 	return &AgentResponse{
 		Goal:        plan.Goal,

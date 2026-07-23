@@ -275,7 +275,7 @@ export function generateAiFix(
   const paramErrors = errors.filter(e => e.type === 'param-error')
   const missingInputs = errors.filter(e => e.type === 'missing-input')
   const typeMismatches = errors.filter(e => e.type === 'type-mismatch')
-  const envErrors = errors.filter(e => e.type === 'env-error')
+  const envErrors = errors.filter(e => e.type === 'env-error' || e.type === 'env-warning')
 
   if (paramErrors.length > 0) {
     suggestions.push({
@@ -388,6 +388,9 @@ export function autoFixWorkflow(
         }
         break
       }
+      case 'env-warning':
+        // env-warnings are informational, no auto-fix needed
+        break
     }
   }
 

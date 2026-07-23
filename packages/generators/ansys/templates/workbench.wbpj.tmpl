@@ -1,0 +1,27 @@
+// AIStudio Generated ANSYS Workbench Project
+// Project: {{.ProjectName}}
+// Generated: {{.Version}}
+// 
+// Open this file with ANSYS Workbench {{.Version}} or later.
+
+{
+  "Project": {
+    "Name": "{{.ProjectName}}",
+    "Description": "{{.Description}}",
+    "Author": "{{.Author}}",
+    "Version": "{{.Version}}",
+    "SchemaVersion": "2023R2"
+  },
+  "Analysis": [
+    {{range $i, $node := .Nodes}}
+    {{if isMechanicalType $node.Type}}
+    {
+      "Name": "{{$node.Name}}",
+      "Type": "StaticStructural",
+      "Solver": "{{or $node.Config.solver "PCG"}}",
+      "Script": "{{$node.ScriptName}}"
+    }{{if notLast $i $.Nodes | isMechanicalLast}}{{","}}{{end}}
+    {{end}}
+    {{end}}
+  ]
+}

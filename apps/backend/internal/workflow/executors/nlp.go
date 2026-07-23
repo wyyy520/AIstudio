@@ -22,7 +22,15 @@ func NLPExecutor(client engine.EngineClient) func(ctx context.Context, inputs ma
 			task = "text-generation"
 		}
 
+		taskID, _ := config["task_id"].(string)
+		nodeID, _ := config["node_id"].(string)
+		if taskID == "" {
+			taskID = "nlp-" + nodeID + "-" + task
+		}
+
 		resp, err := client.Infer(ctx, engine.InferRequest{
+			TaskID:    taskID,
+			Plugin:    "nlp",
 			ModelName: task,
 			Input: map[string]interface{}{
 				"text": text,

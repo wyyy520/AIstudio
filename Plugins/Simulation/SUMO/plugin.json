@@ -1,0 +1,66 @@
+{
+  "id": "sumo-simulation",
+  "name": "SUMO 交通仿真",
+  "version": "1.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "runtime",
+  "description": "SUMO (Simulation of Urban MObility) 微观交通仿真插件",
+  "author": "AIStudio",
+  "nodes": [
+    {
+      "type": "simulation.sumo_network",
+      "name": "SUMO 路网",
+      "description": "加载 SUMO 路网文件",
+      "inputs": [
+        { "id": "network", "name": "路网文件", "type": "file", "required": true }
+      ],
+      "outputs": [
+        { "id": "network_obj", "name": "路网对象", "type": "sumo_network" }
+      ]
+    },
+    {
+      "type": "simulation.sumo_traffic",
+      "name": "SUMO 交通流",
+      "description": "定义交通流量需求",
+      "inputs": [
+        { "id": "network_obj", "name": "路网对象", "type": "sumo_network", "required": true }
+      ],
+      "outputs": [
+        { "id": "route_file", "name": "路由文件", "type": "file" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "vehicle_count": { "type": "integer", "default": 100, "minimum": 1 },
+          "start_time": { "type": "integer", "default": 0, "description": "仿真开始时间（秒）" },
+          "end_time": { "type": "integer", "default": 3600, "description": "仿真结束时间（秒）" }
+        }
+      }
+    },
+    {
+      "type": "simulation.sumo_run",
+      "name": "SUMO 仿真运行",
+      "description": "运行 SUMO 仿真",
+      "inputs": [
+        { "id": "config", "name": "配置文件", "type": "file", "required": true }
+      ],
+      "outputs": [
+        { "id": "results", "name": "仿真结果", "type": "csv" },
+        { "id": "emissions", "name": "排放数据", "type": "csv" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "gui": { "type": "boolean", "default": false, "description": "是否启用 GUI" },
+          "step_length": { "type": "number", "default": 1.0, "description": "仿真步长（秒）" }
+        }
+      }
+    }
+  ],
+  "runtime": {
+    "name": "sumo",
+    "version": ">=1.15.0",
+    "executable": "sumo"
+  },
+  "supported_targets": ["python"]
+}

@@ -8,7 +8,7 @@ import (
 	"github.com/aistudio/backend/internal/compiler"
 	"github.com/aistudio/backend/internal/project"
 	"github.com/aistudio/backend/internal/runtime"
-	"github.com/aistudio/packages/workflow"
+	"github.com/aistudio/backend/internal/workflow"
 )
 
 // RuntimeService provides runtime execution operations.
@@ -37,10 +37,7 @@ func (s *RuntimeService) Plan(ctx context.Context, projectID string, target work
 		return nil, fmt.Errorf("compiler not initialized")
 	}
 
-	wf, err := s.readWorkflow(projectID)
-	if err != nil {
-		return nil, fmt.Errorf("read workflow: %w", err)
-	}
+	workflowPath := s.projectMgr.GetWorkflowPath(projectID)
 
 	opts := compiler.CompileOptions{
 		Target:      target,
@@ -48,7 +45,7 @@ func (s *RuntimeService) Plan(ctx context.Context, projectID string, target work
 		DryRun:      true,
 	}
 
-	return s.compiler.Plan(ctx, wf, opts)
+	return s.compiler.Plan(ctx, workflowPath, opts)
 }
 
 // Compile generates project files from a workflow.
@@ -57,10 +54,7 @@ func (s *RuntimeService) Compile(ctx context.Context, projectID string, target w
 		return nil, fmt.Errorf("compiler not initialized")
 	}
 
-	wf, err := s.readWorkflow(projectID)
-	if err != nil {
-		return nil, fmt.Errorf("read workflow: %w", err)
-	}
+	workflowPath := s.projectMgr.GetWorkflowPath(projectID)
 
 	outputDir := filepath.Join("projects", projectID, "output")
 	if projectName != "" {
@@ -73,15 +67,7 @@ func (s *RuntimeService) Compile(ctx context.Context, projectID string, target w
 		ProjectName: projectName,
 	}
 
-	return s.compiler.Compile(ctx, wf, opts)
-}
-
-// readWorkflow reads the workflow.json for a given project.
-func (s *RuntimeService) readWorkflow(projectID string) (*workflow.Workflow, error) {
-	if s.projectMgr == nil {
-		return nil, fmt.Errorf("project manager not initialized")
-	}
-	return s.projectMgr.ReadWorkflow(projectID)
+	return s.compiler.Compile(ctx, workflowPath, opts)
 }
 
 // Detect checks if the environment meets the runtime requirements.

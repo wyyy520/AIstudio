@@ -58,8 +58,8 @@ func (a *MATLABAdapter) EstimateResources(wf *workflow.Workflow) (*compiler.Reso
 	}, nil
 }
 
-func (a *MATLABAdapter) Generate(ctx context.Context, wf *workflow.Workflow, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
-	pres, err := a.inner.Generate(ctx, toPkgWorkflow(wf), toPkgOptions(opts))
+func (a *MATLABAdapter) Generate(ctx context.Context, plan *compiler.ExecutionPlan, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
+	pres, err := a.inner.Generate(ctx, toPkgWorkflow(plan.Workflow), toPkgOptions(opts))
 	if err != nil {
 		return nil, err
 	}
@@ -117,8 +117,8 @@ func (a *ROS2Adapter) EstimateResources(wf *workflow.Workflow) (*compiler.Resour
 	}, nil
 }
 
-func (a *ROS2Adapter) Generate(ctx context.Context, wf *workflow.Workflow, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
-	pres, err := a.inner.Generate(ctx, toPkgWorkflow(wf), toPkgOptions(opts))
+func (a *ROS2Adapter) Generate(ctx context.Context, plan *compiler.ExecutionPlan, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
+	pres, err := a.inner.Generate(ctx, toPkgWorkflow(plan.Workflow), toPkgOptions(opts))
 	if err != nil {
 		return nil, err
 	}
@@ -176,8 +176,8 @@ func (a *DockerAdapter) EstimateResources(wf *workflow.Workflow) (*compiler.Reso
 	}, nil
 }
 
-func (a *DockerAdapter) Generate(ctx context.Context, wf *workflow.Workflow, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
-	pres, err := a.inner.Generate(ctx, toPkgWorkflow(wf), toPkgOptions(opts))
+func (a *DockerAdapter) Generate(ctx context.Context, plan *compiler.ExecutionPlan, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
+	pres, err := a.inner.Generate(ctx, toPkgWorkflow(plan.Workflow), toPkgOptions(opts))
 	if err != nil {
 		return nil, err
 	}
@@ -235,8 +235,8 @@ func (a *STM32Adapter) EstimateResources(wf *workflow.Workflow) (*compiler.Resou
 	}, nil
 }
 
-func (a *STM32Adapter) Generate(ctx context.Context, wf *workflow.Workflow, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
-	pres, err := a.inner.Generate(ctx, toPkgWorkflow(wf), toPkgOptions(opts))
+func (a *STM32Adapter) Generate(ctx context.Context, plan *compiler.ExecutionPlan, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
+	pres, err := a.inner.Generate(ctx, toPkgWorkflow(plan.Workflow), toPkgOptions(opts))
 	if err != nil {
 		return nil, err
 	}
@@ -294,8 +294,8 @@ func (a *CPPAdapter) EstimateResources(wf *workflow.Workflow) (*compiler.Resourc
 	}, nil
 }
 
-func (a *CPPAdapter) Generate(ctx context.Context, wf *workflow.Workflow, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
-	pres, err := a.inner.Generate(ctx, toPkgWorkflow(wf), toPkgOptions(opts))
+func (a *CPPAdapter) Generate(ctx context.Context, plan *compiler.ExecutionPlan, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
+	pres, err := a.inner.Generate(ctx, toPkgWorkflow(plan.Workflow), toPkgOptions(opts))
 	if err != nil {
 		return nil, err
 	}
@@ -353,8 +353,8 @@ func (a *UnityAdapter) EstimateResources(wf *workflow.Workflow) (*compiler.Resou
 	}, nil
 }
 
-func (a *UnityAdapter) Generate(ctx context.Context, wf *workflow.Workflow, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
-	pres, err := a.inner.Generate(ctx, toPkgWorkflow(wf), toPkgOptions(opts))
+func (a *UnityAdapter) Generate(ctx context.Context, plan *compiler.ExecutionPlan, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
+	pres, err := a.inner.Generate(ctx, toPkgWorkflow(plan.Workflow), toPkgOptions(opts))
 	if err != nil {
 		return nil, err
 	}
@@ -412,8 +412,8 @@ func (a *JavaAdapter) EstimateResources(wf *workflow.Workflow) (*compiler.Resour
 	}, nil
 }
 
-func (a *JavaAdapter) Generate(ctx context.Context, wf *workflow.Workflow, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
-	pres, err := a.inner.Generate(ctx, toPkgWorkflow(wf), toPkgOptions(opts))
+func (a *JavaAdapter) Generate(ctx context.Context, plan *compiler.ExecutionPlan, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
+	pres, err := a.inner.Generate(ctx, toPkgWorkflow(plan.Workflow), toPkgOptions(opts))
 	if err != nil {
 		return nil, err
 	}

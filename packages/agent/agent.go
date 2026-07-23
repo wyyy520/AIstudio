@@ -1,3 +1,30 @@
+// Package agent implements the AI Agent — the intelligent assistant that
+// builds and modifies Workflows through natural language conversation.
+//
+// Architecture (EngStudio.md §7):
+//
+//	User message → Planner (LLM) → Plan (sequence of ToolActions)
+//	→ Executor → ToolRegistry (CreateNode, ConnectNodes, FillConfig, ...)
+//	→ Workflow (mutated in-place) → Memory (conversation history)
+//
+// The Agent is stateless; conversation state lives in Memory. Each Chat call:
+//  1. Retrieves or creates a Conversation from Memory
+//  2. Sends user message + tool list to Planner (LLM)
+//  3. Executes the returned Plan via ToolRegistry
+//  4. Returns a summary message to the user
+//
+// Key design decisions:
+//   - LLM-agnostic: Planner accepts any LLMProvider implementation
+//   - Tool-based: All workflow mutations go through Tools (safe, auditable)
+//   - Event-driven: Publishes to EventBus for UI updates
+//   - Memory-bound: Conversations auto-expire; max 50 messages retained
+//
+// Usage:
+//
+//	agent := agent.NewAgent(skillManager).
+//	    WithLLM(myLLM).
+//	    WithEventBus(bus)
+//	reply, _ := agent.Chat(ctx, "session-1", "Build an image classifier")
 package agent
 
 import (
@@ -12,15 +39,28 @@ import (
 	"github.com/google/uuid"
 )
 
+// ============================================================================
+// Agent — the top-level AI assistant
+// ============================================================================
+
+// Agent combines planning, execution, memory, and tools into a single
+// conversational interface for workflow creation and modification.
 type Agent struct {
-	planner   *Planner
-	executor  *Executor
-	memory    *Memory
-	tools     *ToolRegistry
-	skillMgr  *skill.SkillManager
-	eventBus  *event.EventBus
+	planner   *Planner       // LLM-driven action planner
+	executor  *Executor      // Tool action executor
+	memory    *Memory        // Conversation history (50 msg cap)
+	tools     *ToolRegistry  // Available tools (CreateNode, ConnectNodes, ...)
+	skillMgr  *skill.SkillManager // Skill/template manager
+	eventBus  *event.EventBus     // Optional event bus for UI updates
 }
 
+// ============================================================================
+// Construction — fluent builder pattern
+// ============================================================================
+
+// NewAgent creates a new Agent with the given SkillManager.
+// Tools are auto-registered: CreateNode, ConnectNodes, FillConfig,
+// ValidateWorkflow, ApplySkill, SearchSkills.
 func NewAgent(skillMgr *skill.SkillManager) *Agent {
 	tools := NewToolRegistry()
 	agent := &Agent{
@@ -55,6 +95,12 @@ func (a *Agent) ToolRegistry() *ToolRegistry {
 	return a.tools
 }
 
+// ============================================================================
+// Tool Registration — all tools available to the Planner
+// ============================================================================
+
+// registerTools registers the 6 built-in tools that the Agent can use.
+// Tools are the ONLY way the Agent can modify a Workflow.
 func (a *Agent) registerTools() {
 	a.tools.Register(CreateNodeTool())
 	a.tools.Register(ConnectNodesTool())
@@ -64,6 +110,20 @@ func (a *Agent) registerTools() {
 	a.tools.Register(SearchSkillsTool(a.skillMgr))
 }
 
+// ============================================================================
+// Chat — the main conversational entry point
+// ============================================================================
+
+// Chat processes a user message and returns an assistant reply.
+//
+// Steps:
+//  1. Load or create Conversation from Memory
+//  2. Append user message to conversation history
+//  3. Determine target (defaults to Python if no workflow exists)
+//  4. Ask Planner to generate a Plan from the message + available tools
+//  5. Execute the Plan via ToolRegistry (mutates the Workflow)
+//  6. Return a summary message (success/failure count)
+//  7. Publish agent:chat:completed event
 func (a *Agent) Chat(ctx context.Context, conversationID string, message string) (*Message, error) {
 	conv := a.memory.GetConversation(conversationID)
 	if conv == nil {
@@ -148,6 +208,18 @@ func (a *Agent) Chat(ctx context.Context, conversationID string, message string)
 	return &respMsg, nil
 }
 
+// ============================================================================
+// GenerateWorkflow — create a complete workflow from a description
+// ============================================================================
+
+// GenerateWorkflow creates a brand-new Workflow from a plain-text description.
+//
+// Steps:
+//  1. Plan: ask the LLM to decompose the description into tool actions
+//  2. Create a blank Workflow with the given target
+//  3. Execute the Plan against the blank Workflow
+//  4. Validate: fail if the workflow has no nodes
+//  5. Publish agent:workflow:generated event
 func (a *Agent) GenerateWorkflow(ctx context.Context, description string, target workflow.Target) (*workflow.Workflow, error) {
 	log.Printf("[agent] generating workflow: %s (target: %s)", description, target)
 
@@ -193,6 +265,17 @@ func (a *Agent) GenerateWorkflow(ctx context.Context, description string, target
 	return wf, nil
 }
 
+// ============================================================================
+// ImproveWorkflow — modify an existing workflow based on feedback
+// ============================================================================
+
+// ImproveWorkflow applies user feedback to modify an existing Workflow.
+//
+// Steps:
+//  1. Plan improvements from the feedback string
+//  2. Execute improvement actions against the existing Workflow
+//  3. Update the UpdatedAt timestamp
+//  4. Publish agent:workflow:improved event
 func (a *Agent) ImproveWorkflow(ctx context.Context, wf *workflow.Workflow, feedback string) (*workflow.Workflow, error) {
 	log.Printf("[agent] improving workflow %s: %s", wf.ID, feedback)
 

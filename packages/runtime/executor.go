@@ -1,3 +1,40 @@
+// Package runtime provides the unified execution engine for AIStudio.
+//
+// The Runtime layer is a pure execution engine with ZERO knowledge of:
+//   - Workflows (DSL structure, node types, business logic)
+//   - AI algorithms (training, inference, data processing)
+//
+// Runtime ONLY executes standard OS commands (python, matlab, docker, ssh)
+// and manages process lifecycles.
+//
+// This file implements three Executors:
+//
+//  1. LocalExecutor — runs commands as local OS processes
+//     Steps:
+//     a. Create exec.Cmd with context (supports cancellation/timeout)
+//     b. Pipe stdout/stderr for real-time log streaming
+//     c. Start → stream logs concurrently → Wait → collect exit code
+//     d. Handle timeout via context.DeadlineExceeded
+//
+//  2. DockerExecutor — runs commands inside Docker containers
+//     Steps:
+//     a. Build docker run args (volumes, env, GPU, network, --rm)
+//     b. Execute "docker run <image> <entrypoint> <args>"
+//     c. Same log streaming and exit code collection as LocalExecutor
+//
+//  3. SSHExecutor — runs commands on remote machines via SSH
+//     Steps:
+//     a. Build "ssh" args (host, port, key, StrictHostKeyChecking)
+//     b. Execute remote command via SSH
+//     c. Same log streaming and exit code collection
+//
+// All three executors share a baseExecutor with:
+//   - Run tracking: running map (cmd → runID), runInfos map (runID → status)
+//   - Log streaming: Scanner-based line-by-line stdout/stderr capture
+//   - Log level detection: heuristic keyword matching on output lines
+//   - Panic-safe log emission via sync.RWMutex-protected logger callback
+//
+// EngStudio.md §9 — Runtime Execution Layer
 package runtime
 
 import (
@@ -16,6 +53,12 @@ import (
 	"github.com/google/uuid"
 )
 
+// ============================================================================
+// CommandExecutor Interface — the contract all executors must fulfill
+// ============================================================================
+
+// CommandExecutor is the single interface for process execution.
+// Implementations: LocalExecutor, DockerExecutor, SSHExecutor.
 type CommandExecutor interface {
 	Execute(ctx context.Context, config RunConfig) *RunResult
 	Stop(runID string) error
@@ -24,6 +67,12 @@ type CommandExecutor interface {
 	SetLogger(logger func(LogEntry))
 }
 
+// ============================================================================
+// baseExecutor — shared infrastructure for all executor implementations
+// ============================================================================
+
+// baseExecutor manages run tracking, log streaming, and cleanup.
+// All concrete executors embed this type.
 type baseExecutor struct {
 	mu       sync.RWMutex
 	running  map[string]*exec.Cmd
@@ -37,6 +86,7 @@ type runInfo struct {
 	status    RunStatusEnum
 }
 
+// newBaseExecutor creates the shared base with default settings.
 func newBaseExecutor() *baseExecutor {
 	return &baseExecutor{
 		running:  make(map[string]*exec.Cmd),
@@ -47,10 +97,17 @@ func newBaseExecutor() *baseExecutor {
 	}
 }
 
+// ============================================================================
+// LocalExecutor — native OS process execution
+// ============================================================================
+
+// LocalExecutor runs commands as local OS processes via os/exec.
+// It's the default executor for desktop use.
 type LocalExecutor struct {
 	*baseExecutor
 }
 
+// NewLocalExecutor creates a new local process executor.
 func NewLocalExecutor() *LocalExecutor {
 	return &LocalExecutor{baseExecutor: newBaseExecutor()}
 }
@@ -61,6 +118,20 @@ func (e *baseExecutor) SetLogger(logger func(LogEntry)) {
 	e.logger = logger
 }
 
+// ============================================================================
+// Execute — LocalExecutor implementation
+// ============================================================================
+
+// Execute runs a command as a local OS process.
+//
+// Steps:
+//  1. Generate a unique runID
+//  2. Build exec.Cmd from EntryPoint + Args, set WorkingDir + Env
+//  3. Create stdout/stderr pipes for real-time log capture
+//  4. Start the process (non-blocking)
+//  5. Stream stdout and stderr concurrently via goroutines
+//  6. Wait for process completion
+//  7. Collect exit code and determine final status (Completed/Failed/Timeout)
 func (e *LocalExecutor) Execute(ctx context.Context, config RunConfig) *RunResult {
 	runID := uuid.New().String()
 	startedAt := time.Now()
@@ -192,6 +263,12 @@ func (e *LocalExecutor) Execute(ctx context.Context, config RunConfig) *RunResul
 	}
 }
 
+// ============================================================================
+// Stop — LocalExecutor process group termination
+// ============================================================================
+
+// Stop terminates a running process by killing its process group.
+// This ensures all child processes are also terminated.
 func (e *LocalExecutor) Stop(runID string) error {
 	e.mu.Lock()
 	cmd, ok := e.running[runID]
@@ -218,6 +295,11 @@ func (e *LocalExecutor) Stop(runID string) error {
 	return nil
 }
 
+// ============================================================================
+// Status & List — query execution state
+// ============================================================================
+
+// Status returns the current status of a running execution.
 func (e *baseExecutor) Status(runID string) (*RunStatus, bool) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -235,6 +317,7 @@ func (e *baseExecutor) Status(runID string) (*RunStatus, bool) {
 	}, true
 }
 
+// ListRunning returns all currently tracked executions.
 func (e *baseExecutor) ListRunning() []*RunStatus {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -251,11 +334,17 @@ func (e *baseExecutor) ListRunning() []*RunStatus {
 	return result
 }
 
+// ============================================================================
+// DockerExecutor — containerized execution
+// ============================================================================
+
+// DockerExecutor runs commands inside Docker containers.
 type DockerExecutor struct {
 	*baseExecutor
 	config DockerConfig
 }
 
+// NewDockerExecutor creates a new Docker executor.
 func NewDockerExecutor(cfg DockerConfig) *DockerExecutor {
 	return &DockerExecutor{
 		baseExecutor: newBaseExecutor(),
@@ -263,6 +352,13 @@ func NewDockerExecutor(cfg DockerConfig) *DockerExecutor {
 	}
 }
 
+// Execute — DockerExecutor implementation
+//
+// Steps:
+//  1. Generate runID and build "docker run" arguments from config
+//  2. Attach volumes, env vars, GPU support, network, --rm flag
+//  3. Execute "docker run <image> <entrypoint> <args>"
+//  4. Stream logs, wait, collect exit code (same pattern as LocalExecutor)
 func (e *DockerExecutor) Execute(ctx context.Context, config RunConfig) *RunResult {
 	runID := uuid.New().String()
 	startedAt := time.Now()
@@ -389,6 +485,7 @@ func (e *DockerExecutor) Execute(ctx context.Context, config RunConfig) *RunResu
 	}
 }
 
+// Stop — DockerExecutor sends "docker stop <container>".
 func (e *DockerExecutor) Stop(runID string) error {
 	stopCmd := exec.Command("docker", "stop", "aistudio-"+runID)
 	if err := stopCmd.Run(); err != nil {
@@ -403,11 +500,17 @@ func (e *DockerExecutor) Stop(runID string) error {
 	return nil
 }
 
+// ============================================================================
+// SSHExecutor — remote execution via SSH
+// ============================================================================
+
+// SSHExecutor runs commands on remote machines via SSH.
 type SSHExecutor struct {
 	*baseExecutor
 	config SSHConfig
 }
 
+// NewSSHExecutor creates a new SSH executor.
 func NewSSHExecutor(cfg SSHConfig) *SSHExecutor {
 	return &SSHExecutor{
 		baseExecutor: newBaseExecutor(),
@@ -415,6 +518,14 @@ func NewSSHExecutor(cfg SSHConfig) *SSHExecutor {
 	}
 }
 
+// Execute — SSHExecutor implementation
+//
+// Steps:
+//  1. Build SSH args: host, port, keypath, StrictHostKeyChecking
+//  2. Build remote command: "cd <projectDir> && <entryPoint> <args>"
+//  3. Inject environment variables as prefix (KEY=VALUE cmd)
+//  4. Execute "ssh <args> <remoteCommand>"
+//  5. Stream logs, wait, collect exit code (same pattern)
 func (e *SSHExecutor) Execute(ctx context.Context, config RunConfig) *RunResult {
 	runID := uuid.New().String()
 	startedAt := time.Now()
@@ -529,6 +640,7 @@ func (e *SSHExecutor) Execute(ctx context.Context, config RunConfig) *RunResult 
 	}
 }
 
+// Stop — SSHExecutor kills the local SSH process.
 func (e *SSHExecutor) Stop(runID string) error {
 	e.mu.Lock()
 	cmd, ok := e.running[runID]
@@ -549,6 +661,11 @@ func (e *SSHExecutor) Stop(runID string) error {
 	return nil
 }
 
+// ============================================================================
+// Executor Factory — create the right executor by kind
+// ============================================================================
+
+// NewExecutor creates a CommandExecutor based on the given ExecutorKind.
 func NewExecutor(kind ExecutorKind, opts ...interface{}) CommandExecutor {
 	switch kind {
 	case ExecutorDocker:
@@ -572,6 +689,12 @@ func NewExecutor(kind ExecutorKind, opts ...interface{}) CommandExecutor {
 	}
 }
 
+// ============================================================================
+// Log Streaming — real-time stdout/stderr capture
+// ============================================================================
+
+// streamLogs reads lines from a reader and emits them via the logger callback.
+// It runs in a goroutine and signals completion via WaitGroup.
 func (e *baseExecutor) streamLogs(runID string, reader io.ReadCloser, source string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	defer reader.Close()
@@ -598,6 +721,11 @@ func (e *baseExecutor) streamLogs(runID string, reader io.ReadCloser, source str
 	}
 }
 
+// ============================================================================
+// Internal Helpers — fail, cleanup, emitLog, detectLevel
+// ============================================================================
+
+// fail records a failure and returns a RunResult with error information.
 func (e *baseExecutor) fail(runID string, startedAt time.Time, errMsg string) *RunResult {
 	e.mu.Lock()
 	if info, exists := e.runInfos[runID]; exists {
@@ -623,12 +751,14 @@ func (e *baseExecutor) fail(runID string, startedAt time.Time, errMsg string) *R
 	}
 }
 
+// cleanup removes a completed run's command from the running map.
 func (e *baseExecutor) cleanup(runID string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	delete(e.running, runID)
 }
 
+// emitLog thread-safely calls the configured logger callback.
 func (e *baseExecutor) emitLog(entry LogEntry) {
 	e.mu.RLock()
 	logger := e.logger
@@ -638,6 +768,8 @@ func (e *baseExecutor) emitLog(entry LogEntry) {
 	}
 }
 
+// detectLevel uses heuristic keyword matching to guess the log level from
+// a line of output text. stderr lines are always ERROR.
 func detectLevel(line string, source string) string {
 	if source == "stderr" {
 		return "ERROR"
@@ -676,6 +808,10 @@ func escapeSSHArg(arg string) string {
 	}
 	return arg
 }
+
+// ============================================================================
+// Compile-time interface compliance check
+// ============================================================================
 
 var _ CommandExecutor = (*LocalExecutor)(nil)
 var _ CommandExecutor = (*DockerExecutor)(nil)

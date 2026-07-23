@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/aistudio/backend/internal/plugin"
@@ -41,6 +43,7 @@ func (e *PythonExecutor) Execute(ctx context.Context, p *plugin.Plugin, input ma
 
 	cmd := exec.CommandContext(ctx, "python", scriptPath)
 	cmd.Dir = p.SourceDir
+	cmd.Env = filterPluginEnv(os.Environ())
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -86,4 +89,22 @@ func (e *PythonExecutor) Execute(ctx context.Context, p *plugin.Plugin, input ma
 	}
 
 	return result, nil
+}
+
+// filterPluginEnv filters environment variables for plugin execution.
+// It removes potentially dangerous variables and returns a clean environment.
+func filterPluginEnv(env []string) []string {
+	var filtered []string
+	blocklist := map[string]bool{
+		"AISTUDIO_API_KEY": true,
+		"OPENAI_API_KEY":   true,
+		"ANTHROPIC_API_KEY": true,
+	}
+	for _, e := range env {
+		parts := strings.SplitN(e, "=", 2)
+		if len(parts) > 0 && !blocklist[parts[0]] {
+			filtered = append(filtered, e)
+		}
+	}
+	return filtered
 }

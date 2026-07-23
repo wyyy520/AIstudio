@@ -65,6 +65,31 @@ const routes: RouteRecordRaw[] = [
     name: 'TaskLogs',
     component: () => import('@/pages/Logs/Logs.vue'),
   },
+  {
+    path: '/compiler',
+    name: 'Compiler',
+    component: () => import('@/pages/Compiler/Compiler.vue'),
+  },
+  {
+    path: '/generator',
+    name: 'Generator',
+    component: () => import('@/pages/Generator/Generator.vue'),
+  },
+  {
+    path: '/runtime',
+    name: 'Runtime',
+    component: () => import('@/pages/Runtime/Runtime.vue'),
+  },
+  {
+    path: '/diagnose',
+    name: 'Diagnose',
+    component: () => import('@/pages/Diagnose/Diagnose.vue'),
+  },
+  {
+    path: '/skills',
+    name: 'SkillCenter',
+    component: () => import('@/pages/SkillCenter/SkillCenter.vue'),
+  },
 ]
 
 const router = createRouter({

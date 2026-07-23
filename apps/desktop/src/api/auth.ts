@@ -20,7 +20,7 @@ export function register(data: RegisterParams) {
 }
 
 export function refreshToken() {
-  return request.post('/auth/refresh', data)
+  return request.post('/auth/refresh', {})
 }
 
 export function logout() {

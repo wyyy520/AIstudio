@@ -53,9 +53,17 @@ func (m *Manager) Create(name, target, dir string) (*Project, error) {
 
 	dirs := []string{
 		rootPath,
+		filepath.Join(rootPath, "datasets"),
+		filepath.Join(rootPath, "generated"),
+		filepath.Join(rootPath, "outputs"),
 		filepath.Join(rootPath, "logs"),
-		filepath.Join(rootPath, "models"),
 		filepath.Join(rootPath, "cache"),
+		filepath.Join(rootPath, "templates"),
+		filepath.Join(rootPath, "plugins"),
+		filepath.Join(rootPath, "assets"),
+		filepath.Join(rootPath, "scripts"),
+		filepath.Join(rootPath, "documents"),
+		filepath.Join(rootPath, "temp"),
 	}
 	for _, d := range dirs {
 		if err := os.MkdirAll(d, 0755); err != nil {

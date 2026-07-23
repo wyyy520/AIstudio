@@ -55,11 +55,11 @@ type LogQueryResult struct {
 // LogService provides application-level log management.
 // Wraps the new logcenter.LogCenter for backward compatibility.
 type LogService struct {
-	center *logcenter.LogCenter
+	center logcenter.Logger
 }
 
 // NewLogService creates a new LogService wrapping the LogCenter.
-func NewLogService(center *logcenter.LogCenter) *LogService {
+func NewLogService(center logcenter.Logger) *LogService {
 	log.Printf("[log-service] initializing with LogCenter backend")
 	return &LogService{center: center}
 }
@@ -175,7 +175,7 @@ func (s *LogService) Error(source, message string, opts ...LogOption) {
 }
 
 // GetLogCenter returns the underlying LogCenter for advanced use.
-func (s *LogService) GetLogCenter() *logcenter.LogCenter {
+func (s *LogService) GetLogCenter() logcenter.Logger {
 	return s.center
 }
 

@@ -376,7 +376,7 @@ export const nodeTemplates: NodeTemplate[] = [
       { name: 'info', label: '数据集信息', type: 'json' },
     ],
     params: [
-      { name: 'data_path', label: '数据路径', type: 'text', default: '/data/dataset', category: '基础设置', required: true },
+      { name: 'data_path', label: '数据路径', type: 'text', default: './data/dataset', category: '基础设置', required: true },
       { name: 'data_format', label: '数据格式', type: 'select', default: 'yolo', category: '基础设置', options: [
         { label: 'YOLO', value: 'yolo' }, { label: 'COCO', value: 'coco' }, { label: 'VOC', value: 'voc' },
       ]},
@@ -397,7 +397,7 @@ export const nodeTemplates: NodeTemplate[] = [
     inputs: [],
     outputs: [{ name: 'images', label: '图像列表', type: 'image' }],
     params: [
-      { name: 'folder_path', label: '文件夹路径', type: 'text', default: '/data/images', category: '基础设置', required: true },
+      { name: 'folder_path', label: '文件夹路径', type: 'text', default: './data/images', category: '基础设置', required: true },
       { name: 'resize', label: 'Resize', type: 'number', default: 640, min: 32, max: 4096, category: '预处理' },
       { name: 'grayscale', label: '灰度化', type: 'switch', default: false, category: '预处理' },
     ],
@@ -413,7 +413,7 @@ export const nodeTemplates: NodeTemplate[] = [
     inputs: [],
     outputs: [{ name: 'data', label: '数据', type: 'dataset' }],
     params: [
-      { name: 'file_path', label: '文件路径', type: 'text', default: '/data/data.csv', category: '基础设置', required: true },
+      { name: 'file_path', label: '文件路径', type: 'text', default: './data/data.csv', category: '基础设置', required: true },
       { name: 'delimiter', label: '分隔符', type: 'select', default: ',', category: '基础设置', options: [
         { label: '逗号 (,)', value: ',' }, { label: '制表符', value: '\t' }, { label: '分号 (;)', value: ';' },
       ]},
@@ -547,7 +547,7 @@ export const nodeTemplates: NodeTemplate[] = [
     inputs: [{ name: 'model', label: '模型', type: 'model' }],
     outputs: [{ name: 'checkpoint', label: '检查点', type: 'model' }],
     params: [
-      { name: 'save_path', label: '保存路径', type: 'text', default: '/checkpoints', category: '基础设置' },
+      { name: 'save_path', label: '保存路径', type: 'text', default: './checkpoints', category: '基础设置' },
       { name: 'save_freq', label: '保存频率(Epoch)', type: 'number', default: 10, min: 1, max: 1000, category: '基础设置' },
       { name: 'save_best_only', label: '仅保存最优', type: 'switch', default: true, category: '高级设置' },
     ],
@@ -824,7 +824,7 @@ export const nodeTemplates: NodeTemplate[] = [
     params: [
       { name: 'repo_url', label: '仓库 URL', type: 'text', default: 'https://github.com/user/repo.git', category: '基础设置', required: true },
       { name: 'branch', label: '分支', type: 'text', default: 'main', category: '基础设置' },
-      { name: 'target_dir', label: '目标目录', type: 'text', default: '/workspace', category: '基础设置' },
+      { name: 'target_dir', label: '目标目录', type: 'text', default: './workspace', category: '基础设置' },
       { name: 'depth', label: '浅克隆深度', type: 'number', default: 1, min: 1, max: 100, category: '高级设置' },
     ],
   },
@@ -844,7 +844,7 @@ export const nodeTemplates: NodeTemplate[] = [
         { label: 'PyTorch Hub', value: 'torchhub' }, { label: 'URL', value: 'url' },
       ]},
       { name: 'model_id', label: '模型 ID', type: 'text', default: 'ultralytics/yolov8n', category: '基础设置', required: true },
-      { name: 'cache_dir', label: '缓存目录', type: 'text', default: '/models', category: '高级设置' },
+      { name: 'cache_dir', label: '缓存目录', type: 'text', default: './models', category: '高级设置' },
     ],
   },
 
@@ -864,7 +864,7 @@ export const nodeTemplates: NodeTemplate[] = [
       { name: 'sim_data', label: '仿真数据', type: 'result' },
     ],
     params: [
-      { name: 'sumo_cfg', label: 'SUMO 配置路径', type: 'text', default: '/sim/sumo.sumocfg', category: '基础设置', required: true },
+      { name: 'sumo_cfg', label: 'SUMO 配置路径', type: 'text', default: './sim/sumo.sumocfg', category: '基础设置', required: true },
       { name: 'step_length', label: '步长(秒)', type: 'number', default: 1, min: 0.1, max: 60, step: 0.1, category: '基础设置' },
       { name: 'gui', label: 'GUI 模式', type: 'switch', default: false, category: '高级设置' },
     ],
@@ -884,7 +884,7 @@ export const nodeTemplates: NodeTemplate[] = [
       { name: 'result', label: '结果', type: 'result' },
     ],
     params: [
-      { name: 'script_path', label: '脚本路径', type: 'text', default: '/sim/script.m', category: '基础设置', required: true },
+      { name: 'script_path', label: '脚本路径', type: 'text', default: './sim/script.m', category: '基础设置', required: true },
       { name: 'engine', label: '引擎', type: 'select', default: 'octave', category: '基础设置', options: [
         { label: 'MATLAB', value: 'matlab' }, { label: 'Octave', value: 'octave' },
       ]},
@@ -983,6 +983,415 @@ export const nodeTemplates: NodeTemplate[] = [
       ]},
       { name: 'max_tokens', label: 'Max Tokens', type: 'number', default: 4096, min: 1, max: 128000, category: '基础设置' },
       { name: 'stream', label: '流式输出', type: 'switch', default: false, category: '高级设置' },
+    ],
+  },
+
+  // ======================== STM32 嵌入式 ========================
+  {
+    key: 'stm32_cubemx', label: 'CubeMX', description: 'STM32CubeMX 工程配置',
+    category: 'stm32', nodeType: 'stm32', color: '#00a8e8',
+    icon: 'M4 4h16v16H4z M8 8h8 M8 12h8 M8 16h8',
+    inputs: [],
+    outputs: [{ name: 'project', label: 'STM32 工程', type: 'project' }],
+    params: [
+      { name: 'mcu_model', label: 'MCU 型号', type: 'select', default: 'STM32F407VG', category: '基础设置', options: [
+        { label: 'STM32F103C8', value: 'STM32F103C8' }, { label: 'STM32F407VG', value: 'STM32F407VG' },
+        { label: 'STM32H743ZI', value: 'STM32H743ZI' }, { label: 'STM32G474RE', value: 'STM32G474RE' },
+      ]},
+      { name: 'toolchain', label: '工具链', type: 'select', default: 'makefile', category: '基础设置', options: [
+        { label: 'Makefile', value: 'makefile' }, { label: 'Keil MDK', value: 'mdk' }, { label: 'IAR', value: 'iar' },
+      ]},
+    ],
+  },
+  { key: 'stm32_gpio', label: 'GPIO', description: 'GPIO 引脚配置', category: 'stm32', nodeType: 'stm32', color: '#00a8e8', icon: 'M4 4h16v16H4z',
+    inputs: [{ name: 'config', label: '配置', type: 'json' }], outputs: [{ name: 'gpio', label: 'GPIO 配置', type: 'config' }],
+    params: [
+      { name: 'pin', label: '引脚', type: 'select', default: 'PA0', category: '基础设置', options: [
+        { label: 'PA0', value: 'PA0' }, { label: 'PA1', value: 'PA1' }, { label: 'PB0', value: 'PB0' },
+      ]},
+      { name: 'mode', label: '模式', type: 'select', default: 'output', category: '基础设置', options: [
+        { label: '输入', value: 'input' }, { label: '输出', value: 'output' }, { label: '复用', value: 'alternate' },
+      ]},
+    ],
+  },
+  { key: 'stm32_uart', label: 'UART', description: 'UART 串口通信', category: 'stm32', nodeType: 'stm32', color: '#00a8e8', icon: 'M4 6h16M4 12h16M4 18h12',
+    inputs: [{ name: 'data', label: '数据', type: 'json' }], outputs: [{ name: 'uart', label: 'UART 配置', type: 'config' }],
+    params: [
+      { name: 'port', label: '串口', type: 'select', default: 'USART1', category: '基础设置', options: [
+        { label: 'USART1', value: 'USART1' }, { label: 'USART2', value: 'USART2' }, { label: 'USART3', value: 'USART3' },
+      ]},
+      { name: 'baud_rate', label: '波特率', type: 'select', default: '115200', category: '基础设置', options: [
+        { label: '9600', value: '9600' }, { label: '115200', value: '115200' }, { label: '921600', value: '921600' },
+      ]},
+    ],
+  },
+  { key: 'stm32_pwm', label: 'PWM', description: 'PWM 脉宽调制', category: 'stm32', nodeType: 'stm32', color: '#00a8e8', icon: 'M5 12h14 M12 5v14',
+    inputs: [], outputs: [{ name: 'pwm', label: 'PWM 配置', type: 'config' }],
+    params: [
+      { name: 'timer', label: '定时器', type: 'select', default: 'TIM1', category: '基础设置', options: [
+        { label: 'TIM1', value: 'TIM1' }, { label: 'TIM2', value: 'TIM2' }, { label: 'TIM3', value: 'TIM3' },
+      ]},
+      { name: 'frequency', label: '频率 (Hz)', type: 'number', default: 1000, min: 1, max: 100000, category: '基础设置' },
+      { name: 'duty_cycle', label: '占空比 (%)', type: 'slider', default: 50, min: 0, max: 100, step: 1, category: '基础设置' },
+    ],
+  },
+  { key: 'stm32_adc', label: 'ADC', description: '模数转换器', category: 'stm32', nodeType: 'stm32', color: '#00a8e8', icon: 'M3 17V7 M7 14V7 M11 11V7 M15 8V7 M19 5V7',
+    inputs: [], outputs: [{ name: 'adc', label: 'ADC 配置', type: 'config' }],
+    params: [
+      { name: 'channel', label: '通道', type: 'select', default: 'ADC1_IN0', category: '基础设置', options: [
+        { label: 'ADC1_IN0', value: 'ADC1_IN0' }, { label: 'ADC1_IN1', value: 'ADC1_IN1' },
+      ]},
+      { name: 'resolution', label: '分辨率', type: 'select', default: '12bit', category: '基础设置', options: [
+        { label: '12-bit', value: '12bit' }, { label: '10-bit', value: '10bit' }, { label: '8-bit', value: '8bit' },
+      ]},
+    ],
+  },
+  { key: 'stm32_can', label: 'CAN', description: 'CAN 总线通信', category: 'stm32', nodeType: 'stm32', color: '#00a8e8', icon: 'M4 12h16',
+    inputs: [{ name: 'data', label: '数据', type: 'json' }], outputs: [{ name: 'can', label: 'CAN 配置', type: 'config' }],
+    params: [
+      { name: 'interface', label: '接口', type: 'select', default: 'CAN1', category: '基础设置', options: [
+        { label: 'CAN1', value: 'CAN1' }, { label: 'CAN2', value: 'CAN2' },
+      ]},
+      { name: 'bitrate', label: '速率 (kbps)', type: 'select', default: '500', category: '基础设置', options: [
+        { label: '125', value: '125' }, { label: '250', value: '250' }, { label: '500', value: '500' }, { label: '1000', value: '1000' },
+      ]},
+    ],
+  },
+  { key: 'stm32_freertos', label: 'FreeRTOS', description: 'FreeRTOS 实时操作系统', category: 'stm32', nodeType: 'stm32', color: '#00a8e8', icon: 'M4 4h16v16H4z M8 8h8 M8 12h8 M8 16h8',
+    inputs: [], outputs: [{ name: 'rtos', label: 'RTOS 配置', type: 'config' }],
+    params: [
+      { name: 'task_count', label: '任务数', type: 'number', default: 3, min: 1, max: 16, category: '基础设置' },
+      { name: 'tick_rate', label: 'Tick Rate (Hz)', type: 'number', default: 1000, min: 100, max: 10000, category: '基础设置' },
+    ],
+  },
+  { key: 'stm32_sensor', label: 'Sensor', description: '传感器接口', category: 'stm32', nodeType: 'stm32', color: '#00a8e8', icon: 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z',
+    inputs: [], outputs: [{ name: 'data', label: '传感器数据', type: 'json' }],
+    params: [
+      { name: 'sensor_type', label: '传感器类型', type: 'select', default: 'imu', category: '基础设置', options: [
+        { label: 'IMU (MPU6050)', value: 'imu' }, { label: '温湿度 (DHT22)', value: 'dht' }, { label: '超声波 (HC-SR04)', value: 'ultrasonic' },
+      ]},
+      { name: 'interface', label: '通信接口', type: 'select', default: 'i2c', category: '基础设置', options: [
+        { label: 'I2C', value: 'i2c' }, { label: 'SPI', value: 'spi' }, { label: 'OneWire', value: 'onewire' },
+      ]},
+    ],
+  },
+  { key: 'stm32_motor', label: 'Motor', description: '电机控制', category: 'stm32', nodeType: 'stm32', color: '#00a8e8', icon: 'M12 2l3 3-3 3M12 8l-3 3 3 3',
+    inputs: [{ name: 'control', label: '控制信号', type: 'json' }], outputs: [{ name: 'motor', label: '电机配置', type: 'config' }],
+    params: [
+      { name: 'motor_type', label: '电机类型', type: 'select', default: 'stepper', category: '基础设置', options: [
+        { label: '步进电机', value: 'stepper' }, { label: '直流电机', value: 'dc' }, { label: '舵机', value: 'servo' },
+      ]},
+    ],
+  },
+  { key: 'stm32_ota', label: 'OTA', description: '固件无线升级', category: 'stm32', nodeType: 'stm32', color: '#00a8e8', icon: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
+    inputs: [{ name: 'firmware', label: '固件', type: 'file' }], outputs: [{ name: 'result', label: '升级结果', type: 'result' }],
+    params: [
+      { name: 'protocol', label: '协议', type: 'select', default: 'ymodem', category: '基础设置', options: [
+        { label: 'YModem', value: 'ymodem' }, { label: 'HTTP', value: 'http' },
+      ]},
+    ],
+  },
+
+  // ======================== ANSYS 仿真 ========================
+  { key: 'ansys_workbench', label: 'ANSYS Workbench', description: 'ANSYS Workbench 工程', category: 'ansys', nodeType: 'ansys', color: '#ffc107',
+    icon: 'M12 2L2 7l10 5 10-5-10-5z',
+    inputs: [], outputs: [{ name: 'project', label: 'Workbench 工程', type: 'project' }],
+    params: [
+      { name: 'analysis_type', label: '分析类型', type: 'select', default: 'static', category: '基础设置', options: [
+        { label: 'Static Structural', value: 'static' }, { label: 'Modal', value: 'modal' }, { label: 'Thermal', value: 'thermal' },
+        { label: 'Fluid Flow (Fluent)', value: 'fluent' }, { label: 'CFD', value: 'cfd' },
+      ]},
+    ],
+  },
+  { key: 'ansys_mechanical', label: 'Mechanical', description: 'ANSYS Mechanical 结构分析', category: 'ansys', nodeType: 'ansys', color: '#ffc107',
+    icon: 'M4 4h16v16H4z M8 8h8 M8 12h8 M8 16h8',
+    inputs: [{ name: 'geometry', label: '几何模型', type: 'file' }], outputs: [{ name: 'result', label: '分析结果', type: 'result' }],
+    params: [
+      { name: 'material', label: '材料', type: 'select', default: 'steel', category: '基础设置', options: [
+        { label: 'Structural Steel', value: 'steel' }, { label: 'Aluminum', value: 'aluminum' }, { label: 'Titanium', value: 'titanium' },
+      ]},
+    ],
+  },
+  { key: 'ansys_fluent', label: 'Fluent', description: 'ANSYS Fluent 流体仿真', category: 'ansys', nodeType: 'ansys', color: '#ffc107',
+    icon: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z',
+    inputs: [{ name: 'mesh', label: '网格', type: 'file' }], outputs: [{ name: 'result', label: '流场结果', type: 'result' }],
+    params: [
+      { name: 'fluid', label: '流体介质', type: 'select', default: 'air', category: '基础设置', options: [
+        { label: 'Air', value: 'air' }, { label: 'Water', value: 'water' }, { label: 'Oil', value: 'oil' },
+      ]},
+      { name: 'velocity_inlet', label: '入口速度 (m/s)', type: 'number', default: 10, min: 0.01, max: 1000, category: '基础设置' },
+    ],
+  },
+  { key: 'ansys_apdl', label: 'APDL 脚本', description: 'ANSYS APDL 参数化设计', category: 'ansys', nodeType: 'ansys', color: '#ffc107',
+    icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6',
+    inputs: [{ name: 'script', label: 'APDL 脚本', type: 'text' }], outputs: [{ name: 'result', label: '计算结果', type: 'result' }],
+    params: [
+      { name: 'commands', label: 'APDL 命令', type: 'text', default: '/SOLU\nSOLVE\nFINISH', category: '基础设置' },
+    ],
+  },
+  { key: 'ansys_journal', label: 'Journal', description: 'ANSYS Workbench 日志脚本', category: 'ansys', nodeType: 'ansys', color: '#ffc107',
+    icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z',
+    inputs: [], outputs: [{ name: 'journal', label: 'Journal 文件', type: 'file' }],
+    params: [
+      { name: 'auto_run', label: '自动执行', type: 'switch', default: false, category: '基础设置' },
+    ],
+  },
+  { key: 'ansys_material', label: 'Material', description: '材料属性定义', category: 'ansys', nodeType: 'ansys', color: '#ffc107',
+    icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+    inputs: [], outputs: [{ name: 'material', label: '材料属性', type: 'config' }],
+    params: [
+      { name: 'youngs_modulus', label: '弹性模量 (GPa)', type: 'number', default: 200, min: 1, max: 1000, category: '力学属性' },
+      { name: 'poisson_ratio', label: '泊松比', type: 'number', default: 0.3, min: 0.1, max: 0.49, step: 0.01, category: '力学属性' },
+      { name: 'density', label: '密度 (kg/m³)', type: 'number', default: 7850, min: 1, max: 20000, category: '物理属性' },
+    ],
+  },
+  { key: 'ansys_mesh', label: 'Mesh', description: '网格划分设置', category: 'ansys', nodeType: 'ansys', color: '#ffc107',
+    icon: 'M3 3h18v18H3z M7 7h4v4H7z M13 7h4v4h-4z M7 13h4v4H7z M13 13h4v4h-4z',
+    inputs: [{ name: 'geometry', label: '几何模型', type: 'file' }], outputs: [{ name: 'mesh', label: '网格', type: 'file' }],
+    params: [
+      { name: 'element_size', label: '单元尺寸 (mm)', type: 'number', default: 5, min: 0.1, max: 1000, category: '基础设置' },
+      { name: 'method', label: '划分方法', type: 'select', default: 'tet', category: '基础设置', options: [
+        { label: 'Tetrahedral', value: 'tet' }, { label: 'Hex Dominant', value: 'hex' }, { label: 'Sweep', value: 'sweep' },
+      ]},
+    ],
+  },
+  { key: 'ansys_solver', label: 'Solver', description: '求解器配置', category: 'ansys', nodeType: 'ansys', color: '#ffc107',
+    icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+    inputs: [{ name: 'model', label: '模型', type: 'file' }], outputs: [{ name: 'solution', label: '求解结果', type: 'result' }],
+    params: [
+      { name: 'solver_type', label: '求解器', type: 'select', default: 'sparse', category: '基础设置', options: [
+        { label: 'Sparse Direct', value: 'sparse' }, { label: 'PCG Iterative', value: 'pcg' },
+      ]},
+    ],
+  },
+
+  // ======================== AI 扩展 ========================
+  { key: 'classification', label: 'Classification', description: '图像分类模型', category: 'ai-vision', nodeType: 'vision', color: C.vision,
+    icon: 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 14l2 2 4-4',
+    inputs: [{ name: 'image', label: '图像', type: 'image' }], outputs: [{ name: 'class', label: '分类结果', type: 'result' }],
+    params: [
+      { name: 'model', label: '模型', type: 'select', default: 'resnet50', category: '基础设置', options: [
+        { label: 'ResNet-50', value: 'resnet50' }, { label: 'ViT', value: 'vit' }, { label: 'EfficientNet', value: 'efficientnet' },
+      ]},
+      { name: 'num_classes', label: '类别数', type: 'number', default: 1000, min: 2, max: 100000, category: '基础设置' },
+    ],
+  },
+  { key: 'segmentation', label: 'Segmentation', description: '语义分割模型', category: 'ai-vision', nodeType: 'vision', color: C.vision,
+    icon: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
+    inputs: [{ name: 'image', label: '图像', type: 'image' }], outputs: [{ name: 'mask', label: '分割掩码', type: 'image' }],
+    params: [
+      { name: 'model', label: '模型', type: 'select', default: 'deeplabv3', category: '基础设置', options: [
+        { label: 'DeepLabV3', value: 'deeplabv3' }, { label: 'UNet', value: 'unet' }, { label: 'SegFormer', value: 'segformer' },
+      ]},
+      { name: 'num_classes', label: '分割类别', type: 'number', default: 21, min: 2, max: 200, category: '基础设置' },
+    ],
+  },
+  { key: 'pose_estimation', label: 'Pose Estimation', description: '姿态估计', category: 'ai-vision', nodeType: 'vision', color: C.vision,
+    icon: 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z',
+    inputs: [{ name: 'image', label: '图像', type: 'image' }], outputs: [{ name: 'keypoints', label: '关键点', type: 'json' }],
+    params: [
+      { name: 'model', label: '模型', type: 'select', default: 'yolov8-pose', category: '基础设置', options: [
+        { label: 'YOLOv8-Pose', value: 'yolov8-pose' }, { label: 'MediaPipe', value: 'mediapipe' }, { label: 'OpenPose', value: 'openpose' },
+      ]},
+    ],
+  },
+  { key: 'diffusion', label: 'Diffusion', description: '扩散模型生成', category: 'ai-vision', nodeType: 'vision', color: C.vision,
+    icon: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
+    inputs: [{ name: 'prompt', label: '文本提示', type: 'text' }], outputs: [{ name: 'image', label: '生成图像', type: 'image' }],
+    params: [
+      { name: 'model', label: '模型', type: 'select', default: 'sd', category: '基础设置', options: [
+        { label: 'Stable Diffusion', value: 'sd' }, { label: 'SDXL', value: 'sdxl' }, { label: 'Flux', value: 'flux' },
+      ]},
+      { name: 'steps', label: '推理步数', type: 'number', default: 30, min: 10, max: 150, category: '基础设置' },
+      { name: 'cfg_scale', label: 'CFG Scale', type: 'number', default: 7.0, min: 1, max: 20, step: 0.5, category: '高级设置' },
+    ],
+  },
+  { key: 'ocr', label: 'OCR', description: '光学字符识别', category: 'ai-vision', nodeType: 'vision', color: C.vision,
+    icon: 'M4 4h16v16H4z M8 8h8 M8 12h8 M8 16h8',
+    inputs: [{ name: 'image', label: '图像', type: 'image' }], outputs: [{ name: 'text', label: '识别文字', type: 'text' }],
+    params: [
+      { name: 'engine', label: '引擎', type: 'select', default: 'paddleocr', category: '基础设置', options: [
+        { label: 'PaddleOCR', value: 'paddleocr' }, { label: 'Tesseract', value: 'tesseract' }, { label: 'EasyOCR', value: 'easyocr' },
+      ]},
+      { name: 'language', label: '语言', type: 'select', default: 'ch', category: '基础设置', options: [
+        { label: '中文', value: 'ch' }, { label: '英文', value: 'en' }, { label: '中英混合', value: 'ch_en' },
+      ]},
+    ],
+  },
+  { key: 'embedding', label: 'Embedding', description: '文本向量嵌入', category: 'ai-nlp', nodeType: 'nlp', color: C.nlp,
+    icon: 'M4 4h16v16H4z M8 8h8 M8 12h4 M8 16h8',
+    inputs: [{ name: 'text', label: '文本', type: 'text' }], outputs: [{ name: 'vector', label: '嵌入向量', type: 'tensor' }],
+    params: [
+      { name: 'model', label: '模型', type: 'select', default: 'text-embedding-3', category: '基础设置', options: [
+        { label: 'OpenAI Embedding', value: 'text-embedding-3' }, { label: 'BGE', value: 'bge' }, { label: 'Sentence-BERT', value: 'sbert' },
+      ]},
+    ],
+  },
+  { key: 'vector_db', label: 'VectorDB', description: '向量数据库', category: 'ai-nlp', nodeType: 'nlp', color: C.nlp,
+    icon: 'M11 2H2v9h9z M22 2h-9v9h9z M11 13H2v9h9z M22 13h-9v9h9z',
+    inputs: [{ name: 'vectors', label: '向量数据', type: 'tensor' }], outputs: [{ name: 'results', label: '检索结果', type: 'json' }],
+    params: [
+      { name: 'db_type', label: '数据库', type: 'select', default: 'chromadb', category: '基础设置', options: [
+        { label: 'ChromaDB', value: 'chromadb' }, { label: 'Milvus', value: 'milvus' }, { label: 'FAISS', value: 'faiss' },
+      ]},
+      { name: 'top_k', label: '检索数量', type: 'number', default: 5, min: 1, max: 100, category: '基础设置' },
+    ],
+  },
+
+  // ======================== 控制节点扩展 ========================
+  { key: 'timer', label: 'Timer', description: '定时器节点', category: 'logic', nodeType: 'logic', color: C.logic,
+    icon: 'M12 6v6l4 2 M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z',
+    inputs: [{ name: 'trigger', label: '触发', type: 'any' }], outputs: [{ name: 'timeout', label: '超时', type: 'any' }],
+    params: [
+      { name: 'duration', label: '延时 (秒)', type: 'number', default: 60, min: 1, max: 86400, category: '基础设置' },
+    ],
+  },
+  { key: 'while_loop', label: 'While', description: 'While 循环', category: 'logic', nodeType: 'logic', color: C.logic,
+    icon: 'M17 2v4h-4 M7 22v-4h4',
+    inputs: [{ name: 'input', label: '输入', type: 'any' }], outputs: [{ name: 'output', label: '输出', type: 'any' }],
+    params: [
+      { name: 'condition', label: '循环条件', type: 'text', default: 'counter < max_iter', category: '基础设置', required: true },
+      { name: 'max_iter', label: '最大迭代', type: 'number', default: 1000, min: 1, max: 100000, category: '基础设置' },
+    ],
+  },
+  { key: 'foreach', label: 'ForEach', description: '遍历迭代', category: 'logic', nodeType: 'logic', color: C.logic,
+    icon: 'M8 6h8M8 12h8M8 18h8',
+    inputs: [{ name: 'list', label: '列表', type: 'json' }], outputs: [{ name: 'item', label: '当前项', type: 'any' }],
+    params: [
+      { name: 'parallel', label: '并行执行', type: 'switch', default: false, category: '高级设置' },
+    ],
+  },
+  { key: 'merge', label: 'Merge', description: '合并多个输入', category: 'logic', nodeType: 'logic', color: C.logic,
+    icon: 'M12 5v14 M5 12h14',
+    inputs: [
+      { name: 'input_1', label: '输入 1', type: 'any' },
+      { name: 'input_2', label: '输入 2', type: 'any' },
+      { name: 'input_3', label: '输入 3', type: 'any' },
+    ],
+    outputs: [{ name: 'merged', label: '合并结果', type: 'any' }],
+    params: [
+      { name: 'strategy', label: '合并策略', type: 'select', default: 'concat', category: '基础设置', options: [
+        { label: 'Concat', value: 'concat' }, { label: 'Union', value: 'union' }, { label: 'First', value: 'first' },
+      ]},
+    ],
+  },
+  { key: 'delay', label: 'Delay', description: '延时节点', category: 'logic', nodeType: 'logic', color: C.logic,
+    icon: 'M12 6v6l4 2',
+    inputs: [{ name: 'input', label: '输入', type: 'any' }], outputs: [{ name: 'output', label: '输出', type: 'any' }],
+    params: [
+      { name: 'seconds', label: '延时 (秒)', type: 'number', default: 5, min: 0.1, max: 3600, step: 0.1, category: '基础设置' },
+    ],
+  },
+  { key: 'parallel', label: 'Parallel', description: '并行执行', category: 'logic', nodeType: 'logic', color: C.logic,
+    icon: 'M3 3h7v7H3V3zm0 11h7v7H3v-7zm11-11h7v7h-7V3zm0 11h7v7h-7v-7z',
+    inputs: [{ name: 'input', label: '输入', type: 'any' }],
+    outputs: [
+      { name: 'branch_1', label: '分支 1', type: 'any' },
+      { name: 'branch_2', label: '分支 2', type: 'any' },
+    ],
+    params: [
+      { name: 'num_branches', label: '分支数', type: 'number', default: 2, min: 2, max: 8, category: '基础设置' },
+    ],
+  },
+
+  // ======================== 工具节点 ========================
+  { key: 'log_output', label: 'Log', description: '日志输出节点', category: 'tools', nodeType: 'tools', color: C.success,
+    icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6',
+    inputs: [{ name: 'data', label: '数据', type: 'any' }], outputs: [{ name: 'log', label: '日志记录', type: 'result' }],
+    params: [
+      { name: 'level', label: '日志级别', type: 'select', default: 'info', category: '基础设置', options: [
+        { label: 'Debug', value: 'debug' }, { label: 'Info', value: 'info' }, { label: 'Warning', value: 'warning' }, { label: 'Error', value: 'error' },
+      ]},
+      { name: 'message', label: '日志信息', type: 'text', default: 'Processing...', category: '基础设置' },
+    ],
+  },
+  { key: 'export_data', label: 'Export', description: '数据导出节点', category: 'tools', nodeType: 'tools', color: C.info,
+    icon: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3',
+    inputs: [{ name: 'data', label: '数据', type: 'any' }], outputs: [{ name: 'file', label: '导出文件', type: 'file' }],
+    params: [
+      { name: 'format', label: '导出格式', type: 'select', default: 'csv', category: '基础设置', options: [
+        { label: 'CSV', value: 'csv' }, { label: 'JSON', value: 'json' }, { label: 'Excel', value: 'excel' }, { label: 'Parquet', value: 'parquet' },
+      ]},
+      { name: 'output_path', label: '输出路径', type: 'text', default: './output', category: '基础设置', required: true },
+    ],
+  },
+  { key: 'debug', label: 'Debug', description: '调试断点节点', category: 'tools', nodeType: 'tools', color: C.warning,
+    icon: 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z M12 6v6 M12 16h.01',
+    inputs: [{ name: 'data', label: '数据', type: 'any' }], outputs: [{ name: 'data', label: '透传数据', type: 'any' }],
+    params: [
+      { name: 'breakpoint', label: '断点模式', type: 'switch', default: true, category: '基础设置' },
+      { name: 'inspect', label: '查看变量', type: 'text', default: '', category: '基础设置', placeholder: '变量名或表达式' },
+    ],
+  },
+  { key: 'print', label: 'Print', description: '打印输出', category: 'tools', nodeType: 'tools', color: C.info,
+    icon: 'M4 6h16M4 12h16M4 18h12',
+    inputs: [{ name: 'data', label: '数据', type: 'any' }], outputs: [{ name: 'data', label: '透传数据', type: 'any' }],
+    params: [
+      { name: 'template', label: '输出模板', type: 'text', default: 'Result: {{value}}', category: '基础设置', placeholder: '使用 {{field}} 占位符' },
+    ],
+  },
+  { key: 'save_file', label: 'Save', description: '文件保存节点', category: 'tools', nodeType: 'tools', color: C.success,
+    icon: 'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z',
+    inputs: [{ name: 'content', label: '内容', type: 'any' }], outputs: [{ name: 'file', label: '保存文件', type: 'file' }],
+    params: [
+      { name: 'path', label: '保存路径', type: 'text', default: './output/result.txt', category: '基础设置', required: true },
+      { name: 'overwrite', label: '覆盖已有文件', type: 'switch', default: true, category: '基础设置' },
+    ],
+  },
+  { key: 'notification', label: 'Notification', description: '通知节点', category: 'tools', nodeType: 'tools', color: C.warning,
+    icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',
+    inputs: [{ name: 'message', label: '消息', type: 'text' }], outputs: [],
+    params: [
+      { name: 'channel', label: '通知方式', type: 'select', default: 'email', category: '基础设置', options: [
+        { label: 'Email', value: 'email' }, { label: 'Webhook', value: 'webhook' }, { label: 'Slack', value: 'slack' },
+      ]},
+      { name: 'recipient', label: '接收人', type: 'text', default: 'user@example.com', category: '基础设置' },
+    ],
+  },
+
+  // ======================== Python ========================
+  { key: 'python_script', label: 'Python Script', description: '执行 Python 脚本', category: 'python', nodeType: 'python', color: '#3776AB',
+    icon: 'M12 2C7.6 2 4 4 4 4s0 3.6 0 5h8c0 0 0-1 2-1s4 0 4 0 0-2 0-4c0-2-2.5-3-6-3z',
+    inputs: [{ name: 'inputs', label: '输入参数', type: 'json' }], outputs: [{ name: 'result', label: '执行结果', type: 'json' }],
+    params: [
+      { name: 'code', label: 'Python 代码', type: 'text', default: 'print("Hello AIStudio")', category: '基础设置', required: true },
+      { name: 'timeout', label: '超时 (秒)', type: 'number', default: 30, min: 1, max: 3600, category: '基础设置' },
+    ],
+  },
+  { key: 'python_function', label: 'Python Function', description: 'Python 函数调用', category: 'python', nodeType: 'python', color: '#3776AB',
+    icon: 'M5 12h14 M12 5l7 7-7 7',
+    inputs: [{ name: 'args', label: '参数', type: 'json' }], outputs: [{ name: 'return', label: '返回值', type: 'json' }],
+    params: [
+      { name: 'module', label: '模块名', type: 'text', default: 'numpy', category: '基础设置', required: true },
+      { name: 'function', label: '函数名', type: 'text', default: 'array', category: '基础设置', required: true },
+    ],
+  },
+  { key: 'python_package', label: 'Python Package', description: 'Python 包管理', category: 'python', nodeType: 'python', color: '#3776AB',
+    icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
+    inputs: [], outputs: [{ name: 'result', label: '安装结果', type: 'result' }],
+    params: [
+      { name: 'packages', label: '包列表', type: 'text', default: 'numpy\nscipy\nmatplotlib', category: '基础设置', placeholder: '每行一个包名' },
+      { name: 'manager', label: '包管理器', type: 'select', default: 'pip', category: '基础设置', options: [
+        { label: 'pip', value: 'pip' }, { label: 'conda', value: 'conda' }, { label: 'poetry', value: 'poetry' },
+      ]},
+    ],
+  },
+  { key: 'python_environment', label: 'Python Environment', description: 'Python 虚拟环境', category: 'python', nodeType: 'python', color: '#3776AB',
+    icon: 'M12 2C7.6 2 4 4 4 4s0 3.6 0 5h8 M12 22c4.4 0 8-2 8-2s0-3.6 0-5h-8',
+    inputs: [], outputs: [{ name: 'env', label: '环境配置', type: 'config' }],
+    params: [
+      { name: 'env_type', label: '环境类型', type: 'select', default: 'venv', category: '基础设置', options: [
+        { label: 'venv', value: 'venv' }, { label: 'conda', value: 'conda' }, { label: 'virtualenv', value: 'virtualenv' },
+      ]},
+      { name: 'python_version', label: 'Python 版本', type: 'text', default: '3.10', category: '基础设置' },
+    ],
+  },
+  { key: 'python_shell', label: 'Python Shell', description: 'Python Shell 命令', category: 'python', nodeType: 'python', color: '#3776AB',
+    icon: 'M4 6h16M4 12h16M4 18h7',
+    inputs: [], outputs: [{ name: 'stdout', label: '标准输出', type: 'text' }, { name: 'stderr', label: '错误输出', type: 'text' }],
+    params: [
+      { name: 'command', label: '命令', type: 'text', default: 'python train.py --epochs 100', category: '基础设置', required: true },
+      { name: 'workdir', label: '工作目录', type: 'text', default: './workspace', category: '基础设置' },
     ],
   },
 ]

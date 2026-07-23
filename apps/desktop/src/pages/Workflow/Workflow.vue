@@ -1,7 +1,7 @@
 <template>
   <WorkflowEditor
-    :workflow-id="workflowId"
-    :workflow-name="workflowId ? '编辑工作流' : '新建工作流'"
+    :project-id="projectId"
+    :workflow-name="projectId ? 'Project Workflow' : 'New Workflow'"
   />
 </template>
 
@@ -12,7 +12,8 @@ import WorkflowEditor from './components/WorkflowEditor.vue'
 
 const route = useRoute()
 
-const workflowId = computed(() => {
-  return (route.params.id as string) || undefined
+// Support both /project/:projectId/workflow and /workflow/:id routes
+const projectId = computed(() => {
+  return (route.params.projectId as string) || undefined
 })
 </script>

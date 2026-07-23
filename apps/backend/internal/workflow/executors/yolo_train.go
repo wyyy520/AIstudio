@@ -15,7 +15,14 @@ func YOLOTrainExecutor(client engine.EngineClient) func(ctx context.Context, inp
 			modelName = "yolov8"
 		}
 
+		taskID, _ := config["task_id"].(string)
+		if taskID == "" {
+			taskID = "yolo-train-" + modelName
+		}
+
 		resp, err := client.Train(ctx, engine.TrainRequest{
+			TaskID:    taskID,
+			Plugin:    "yolo",
 			Dataset:   dataset,
 			Config:    config,
 			ModelName: modelName,

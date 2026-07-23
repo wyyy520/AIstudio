@@ -8,7 +8,7 @@ import (
 	"github.com/aistudio/backend/internal/compiler"
 	"github.com/aistudio/backend/internal/runtime"
 	"github.com/aistudio/backend/internal/service"
-	"github.com/aistudio/packages/workflow"
+	"github.com/aistudio/backend/internal/workflow"
 	"github.com/gin-gonic/gin"
 )
 

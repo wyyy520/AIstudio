@@ -1,0 +1,31 @@
+{
+  "id": "mcp-client",
+  "name": "MCP 协议客户端",
+  "version": "1.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "runtime",
+  "description": "Model Context Protocol 客户端，支持与外部 MCP Server 通信",
+  "author": "AIStudio",
+  "nodes": [
+    {
+      "type": "mcp.client",
+      "name": "MCP 客户端",
+      "description": "连接并调用 MCP Server 提供的工具",
+      "inputs": [
+        { "id": "server_url", "name": "服务器地址", "type": "string", "required": true },
+        { "id": "tool_params", "name": "工具参数", "type": "json" }
+      ],
+      "outputs": [
+        { "id": "result", "name": "调用结果", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "timeout": { "type": "integer", "default": 30, "minimum": 1, "description": "调用超时（秒）" },
+          "retries": { "type": "integer", "default": 3, "minimum": 0, "description": "重试次数" }
+        }
+      }
+    }
+  ],
+  "supported_targets": ["python", "nodejs"]
+}

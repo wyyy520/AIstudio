@@ -1,0 +1,66 @@
+{
+  "id": "vissim-simulation",
+  "name": "VISSIM 交通仿真",
+  "version": "1.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "runtime",
+  "description": "PTV VISSIM 微观交通仿真插件，支持信号控制、车辆行为建模",
+  "author": "AIStudio",
+  "nodes": [
+    {
+      "type": "simulation.vissim_network",
+      "name": "VISSIM 路网",
+      "description": "加载 VISSIM 路网文件 (.inpx)",
+      "inputs": [
+        { "id": "network_file", "name": "路网文件", "type": "file", "required": true }
+      ],
+      "outputs": [
+        { "id": "network_obj", "name": "路网对象", "type": "vissim_network" }
+      ]
+    },
+    {
+      "type": "simulation.vissim_signal",
+      "name": "VISSIM 信号控制",
+      "description": "配置交通信号控制方案",
+      "inputs": [
+        { "id": "network_obj", "name": "路网对象", "type": "vissim_network", "required": true }
+      ],
+      "outputs": [
+        { "id": "signal_config", "name": "信号配置", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "cycle_time": { "type": "integer", "default": 120, "minimum": 30, "maximum": 300, "description": "周期时长（秒）" },
+          "phases": { "type": "integer", "default": 4, "minimum": 2, "maximum": 8, "description": "相位数量" }
+        }
+      }
+    },
+    {
+      "type": "simulation.vissim_run",
+      "name": "VISSIM 仿真运行",
+      "description": "运行 VISSIM 仿真并采集数据",
+      "inputs": [
+        { "id": "network_file", "name": "路网文件", "type": "file", "required": true }
+      ],
+      "outputs": [
+        { "id": "delay", "name": "延误数据", "type": "csv" },
+        { "id": "volume", "name": "流量数据", "type": "csv" },
+        { "id": "queue", "name": "排队长度", "type": "csv" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "duration": { "type": "integer", "default": 3600, "description": "仿真时长（秒）" },
+          "seed": { "type": "integer", "default": 42, "description": "随机种子" }
+        }
+      }
+    }
+  ],
+  "runtime": {
+    "name": "vissim",
+    "version": ">=2023",
+    "executable": "VISSIM.exe"
+  },
+  "supported_targets": ["python", "com"]
+}

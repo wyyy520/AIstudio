@@ -168,7 +168,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "val", Name: "验证集", Type: "dataset"},
 				{ID: "test", Name: "测试集", Type: "dataset"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.DataSplitExecutor()) },
 		},
 		{
 			Type:        "data.augmentation",
@@ -182,7 +182,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "augmented", Name: "增强后数据", Type: "dataset"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.DataAugmentationExecutor()) },
 		},
 
 		// ---- Vision / Model nodes ----
@@ -232,7 +232,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "output", Name: "输出", Type: "tensor"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "nlp", "transformer")) },
 		},
 		{
 			Type:        "nlp.llm",
@@ -266,7 +266,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "trained_model", Name: "训练后模型", Type: "model"},
 				{ID: "metrics", Name: "训练指标", Type: DataTypeJSON},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AITrainExecutor(engineClient, "training")) },
 		},
 		{
 			Type:        "training.export",
@@ -280,8 +280,8 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "exported", Name: "导出模型", Type: "model"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
-		},
+		Factory: func() ExecutableNode { return executableFunc(executors.ModelExportExecutor(engineClient)) },
+	},
 
 		// ---- System nodes ----
 		{
@@ -294,7 +294,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "env", Name: "环境", Type: DataTypeStream},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.SystemPythonEnvExecutor()) },
 		},
 		{
 			Type:        "system.install_dep",
@@ -306,7 +306,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "result", Name: "安装结果", Type: DataTypeJSON},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.SystemInstallDepExecutor()) },
 		},
 
 		// ---- Deployment nodes ----
@@ -322,7 +322,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "endpoint", Name: "API 端点", Type: DataTypeStream},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.DeploymentAPIServerExecutor()) },
 		},
 		{
 			Type:        "deployment.docker",
@@ -337,7 +337,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "image", Name: "Docker 镜像", Type: DataTypeStream},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.DeploymentDockerExecutor()) },
 		},
 
 		// ---- Image Classification nodes ----
@@ -354,7 +354,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "class", Name: "类别", Type: "text"},
 				{ID: "confidence", Name: "置信度", Type: "number"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "vision", "resnet")) },
 		},
 		{
 			Type:        "vision.efficientnet",
@@ -369,7 +369,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "class", Name: "类别", Type: "text"},
 				{ID: "probabilities", Name: "概率分布", Type: DataTypeJSON},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "vision", "efficientnet")) },
 		},
 		{
 			Type:        "vision.vgg",
@@ -384,7 +384,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "class", Name: "类别", Type: "text"},
 				{ID: "features", Name: "特征向量", Type: "tensor"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "vision", "vgg")) },
 		},
 
 		// ---- Object Detection nodes ----
@@ -402,7 +402,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "labels", Name: "标签", Type: DataTypeJSON},
 				{ID: "scores", Name: "分数", Type: DataTypeJSON},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "vision", "faster_rcnn")) },
 		},
 		{
 			Type:        "vision.ssd",
@@ -416,7 +416,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "detections", Name: "检测结果", Type: DataTypeJSON},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "vision", "ssd")) },
 		},
 
 		// ---- Image Segmentation nodes ----
@@ -433,7 +433,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "mask", Name: "分割掩码", Type: "image"},
 				{ID: "overlay", Name: "叠加图", Type: "image"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "vision", "unet")) },
 		},
 		{
 			Type:        "vision.mask_rcnn",
@@ -448,10 +448,10 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "instances", Name: "实例", Type: DataTypeJSON},
 				{ID: "masks", Name: "掩码", Type: "image"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
-		},
+		Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "vision", "mask_rcnn")) },
+	},
 
-		// ---- NLP nodes ----
+	// ---- NLP nodes ----
 		{
 			Type:        "nlp.bert",
 			Plugin:      "core",
@@ -465,7 +465,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "embedding", Name: "嵌入向量", Type: "tensor"},
 				{ID: "pooled", Name: "池化输出", Type: "tensor"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "nlp", "bert")) },
 		},
 		{
 			Type:        "nlp.lstm",
@@ -480,7 +480,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "output", Name: "输出", Type: "tensor"},
 				{ID: "hidden", Name: "隐藏状态", Type: "tensor"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "nlp", "lstm")) },
 		},
 		{
 			Type:        "nlp.text_classification",
@@ -509,7 +509,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "entities", Name: "实体列表", Type: DataTypeJSON},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "nlp", "ner")) },
 		},
 		{
 			Type:        "nlp.summarization",
@@ -523,7 +523,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "summary", Name: "摘要", Type: "text"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "nlp", "summarization")) },
 		},
 		{
 			Type:        "nlp.translation",
@@ -538,7 +538,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "translated", Name: "翻译结果", Type: "text"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "nlp", "translation")) },
 		},
 		{
 			Type:        "nlp.tokenizer",
@@ -553,7 +553,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "tokens", Name: "词元", Type: DataTypeJSON},
 				{ID: "ids", Name: "词元ID", Type: DataTypeJSON},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.TokenizerExecutor()) },
 		},
 
 		// ---- Speech nodes ----
@@ -569,7 +569,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "text", Name: "文本", Type: "text"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "speech", "asr")) },
 		},
 		{
 			Type:        "speech.tts",
@@ -583,7 +583,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "audio", Name: "音频", Type: "audio"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.AIInferExecutor(engineClient, "speech", "tts")) },
 		},
 
 		// ---- Data Processing nodes ----
@@ -645,7 +645,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "scaled", Name: "归一化数据", Type: "dataset"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.FeatureScalerExecutor()) },
 		},
 		{
 			Type:        "feature.encoder",
@@ -659,7 +659,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "encoded", Name: "编码后数据", Type: "dataset"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.FeatureEncoderExecutor()) },
 		},
 
 		// ---- Evaluation nodes ----
@@ -677,7 +677,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "accuracy", Name: "准确率", Type: "number"},
 				{ID: "report", Name: "评估报告", Type: DataTypeJSON},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.EvalClassificationExecutor()) },
 		},
 		{
 			Type:        "eval.detection",
@@ -693,7 +693,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "map", Name: "mAP", Type: "number"},
 				{ID: "metrics", Name: "评估指标", Type: DataTypeJSON},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.EvalDetectionExecutor()) },
 		},
 
 		// ---- Visualization nodes ----
@@ -709,7 +709,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "chart", Name: "图表", Type: "image"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.VizChartExecutor()) },
 		},
 		{
 			Type:        "viz.plot",
@@ -724,7 +724,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "plot", Name: "图像", Type: "image"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.VizPlotExecutor()) },
 		},
 
 		// ---- Model nodes ----
@@ -740,7 +740,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "model", Name: "模型", Type: DataTypeModel},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.ModelLoadExecutor()) },
 		},
 		{
 			Type:        "model.save",
@@ -755,7 +755,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "saved", Name: "保存成功", Type: "boolean"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.ModelSaveExecutor()) },
 		},
 
 		// ---- Input/Output nodes ----
@@ -769,7 +769,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "value", Name: "输入值", Type: "any"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.IOInputExecutor()) },
 		},
 		{
 			Type:        "io.output",
@@ -781,7 +781,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "data", Name: "数据", Type: "any", Required: true},
 			},
 			Outputs: []Port{},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.IOOutputExecutor()) },
 		},
 		{
 			Type:        "io.file",
@@ -796,7 +796,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "success", Name: "成功", Type: "boolean"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.IOFileExecutor()) },
 		},
 
 		// ---- Math nodes ----
@@ -813,7 +813,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "result", Name: "结果", Type: "number"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.MathAddExecutor()) },
 		},
 		{
 			Type:        "math.multiply",
@@ -828,7 +828,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "result", Name: "结果", Type: "number"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.MathMultiplyExecutor()) },
 		},
 
 		// ---- Logic nodes ----
@@ -846,7 +846,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 				{ID: "equal", Name: "相等", Type: "boolean"},
 				{ID: "greater", Name: "大于", Type: "boolean"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.LogicCompareExecutor()) },
 		},
 		{
 			Type:        "logic.merge",
@@ -862,7 +862,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "output", Name: "输出", Type: "any"},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.LogicMergeExecutor()) },
 		},
 
 		// ---- Simulation nodes ----
@@ -878,7 +878,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "simulation_result", Name: "仿真结果", Type: DataTypeJSON},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.SimulationSUMOExecutor()) },
 		},
 
 		// ---- MCP nodes ----
@@ -895,7 +895,7 @@ func BuiltInNodeDefinitions() []NodeDefinition {
 			Outputs: []Port{
 				{ID: "output", Name: "工具输出", Type: DataTypeJSON},
 			},
-			Factory: func() ExecutableNode { return executableFunc(noOpExecutor) },
+			Factory: func() ExecutableNode { return executableFunc(executors.MCPToolExecutor()) },
 		},
 	}
 }

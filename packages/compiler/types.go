@@ -1,3 +1,20 @@
+// Package compiler — Shared Types
+//
+// This file defines the public types shared between packages/compiler and
+// internal/compiler. All types here are re-exported by internal/compiler
+// via type aliases (type CompileResult = pkgcompiler.CompileResult).
+//
+// Key types:
+//   - CompileOptions: control compilation behavior (output, target, variables, force, dryRun)
+//   - CompileResult: the final output of compilation (projectRoot, entryPoints, files, duration)
+//   - GeneratedFile: a single file produced by the compiler
+//   - TargetInfo: metadata about a compilation target (name, description, version)
+//   - RuntimeRequirement: declarative dependency specification (python, packages, commands, GPU)
+//   - CompilePlan: dry-run result showing what will be generated without writing files
+//   - ResourceEstimate: estimated resource consumption before generation
+//   - GenerateResult: generator output (projectRoot, entryPoints, files)
+//
+// EngStudio.md §3.5 — Compiler Types
 package compiler
 
 import (
@@ -5,6 +22,10 @@ import (
 
 	"github.com/aistudio/packages/workflow"
 )
+
+// ============================================================================
+// CompileOptions — controls compilation behavior
+// ============================================================================
 
 // CompileOptions controls the compilation behavior.
 type CompileOptions struct {

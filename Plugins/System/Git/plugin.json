@@ -1,0 +1,59 @@
+{
+  "id": "git-integration",
+  "name": "Git 版本控制",
+  "version": "1.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "node",
+  "description": "在工作流中集成 Git 版本控制操作",
+  "author": "AIStudio",
+  "nodes": [
+    {
+      "type": "system.git_clone",
+      "name": "Git 克隆",
+      "description": "克隆 Git 仓库",
+      "inputs": [
+        { "id": "url", "name": "仓库地址", "type": "string", "required": true }
+      ],
+      "outputs": [
+        { "id": "repo_path", "name": "本地路径", "type": "path" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "branch": { "type": "string", "default": "main", "description": "分支名称" },
+          "depth": { "type": "integer", "default": 0, "description": "浅克隆深度（0=完整克隆）" }
+        }
+      }
+    },
+    {
+      "type": "system.git_commit",
+      "name": "Git 提交",
+      "description": "提交代码变更",
+      "inputs": [
+        { "id": "repo_path", "name": "仓库路径", "type": "path", "required": true },
+        { "id": "files", "name": "文件列表", "type": "json" }
+      ],
+      "outputs": [
+        { "id": "commit_hash", "name": "提交哈希", "type": "string" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "string", "default": "Auto-commit by AIStudio", "description": "提交信息" }
+        }
+      }
+    },
+    {
+      "type": "system.git_push",
+      "name": "Git 推送",
+      "description": "推送代码到远程仓库",
+      "inputs": [
+        { "id": "repo_path", "name": "仓库路径", "type": "path", "required": true }
+      ],
+      "outputs": [
+        { "id": "result", "name": "推送结果", "type": "json" }
+      ]
+    }
+  ],
+  "supported_targets": ["python", "generic"]
+}

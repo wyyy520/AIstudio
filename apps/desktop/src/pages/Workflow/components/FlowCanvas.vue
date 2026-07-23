@@ -11,11 +11,13 @@
       :fit-view-on-init="true"
       @node-click="onNodeClick"
       @node-double-click="onNodeDoubleClick"
+      @node-drag-stop="onNodeDragStop"
       @connect="onConnect"
       @connect-start="onConnectStart"
       @connect-end="onConnectEnd"
       @init="onInit"
       @pane-click="onPaneClick"
+      @edge-double-click="onEdgeDoubleClick"
       @selection-change="onSelectionChange"
       @nodes-delete="onNodesDelete"
       :pan-on-scroll="false"
@@ -60,7 +62,8 @@ import type { WorkflowNodeData, ValidationError } from '../types/workflow'
 
 import '@vue-flow/core/dist/style.css'
 
-const nodeTypes = {
+import type { Component } from 'vue'
+const nodeTypes: Record<string, Component> = {
   custom: NodeCard,
 }
 
@@ -80,6 +83,10 @@ const emits = defineEmits<{
   'nodes-delete': [nodeIds: string[]]
   'run-state-change': [nodeId: string, status: 'idle' | 'running' | 'success' | 'error']
   'validation-error': [error: ValidationError]
+  'node-drag-stop': [node: Node]
+  'connect': [connection: Connection]
+  'edge-dblclick': [edge: Edge]
+  'pane-click': []
 }>()
 
 const localNodes = ref<Node[]>(props.nodes || [])
@@ -88,7 +95,7 @@ const selectedNodeId = ref<string | null>(null)
 const isDragging = ref(false)
 const isConnecting = ref(false)
 
-const { fitView, zoomIn, zoomOut, screenToFlowPosition } = useVueFlow()
+const { fitView, zoomIn, zoomOut } = useVueFlow()
 
 watch(() => props.nodes, (val) => {
   if (val) localNodes.value = val
@@ -128,10 +135,8 @@ function nodeColorResolver(node: Node): string {
 }
 
 function onInit(): void {
-  if (localNodes.value.length === 0) {
-    initSampleWorkflow()
-    setTimeout(() => fitView({ padding: 0.2 }), 100)
-  }
+  // Do NOT init sample workflow — data comes from store / backend API
+  setTimeout(() => fitView({ padding: 0.2 }), 100)
 }
 
 function onNodeClick({ node }: { node: Node }): void {
@@ -146,6 +151,7 @@ function onNodeDoubleClick({ node }: { node: Node }): void {
 function onPaneClick(): void {
   selectedNodeId.value = null
   emits('node-click', null)
+  emits('pane-click')
 }
 
 function onConnectStart(): void {
@@ -227,7 +233,8 @@ function onConnect(params: Connection): void {
     targetHandle: resolvedTargetHandle,
     type: 'step',
   }
-  localEdges.value = addEdge(newEdge, localEdges.value)
+  localEdges.value = [...localEdges.value, newEdge]
+  emits('connect', { source: params.source, target: params.target, sourceHandle: resolvedSourceHandle, targetHandle: resolvedTargetHandle } as Connection)
 }
 
 function onSelectionChange({ nodes, edges }: { nodes: Node[]; edges: Edge[] }): void {
@@ -249,19 +256,24 @@ function onNodesDelete(deletedNodes: Node[]): void {
   }
 }
 
+function onNodeDragStop({ node }: { node: Node }): void {
+  emits('node-drag-stop', node)
+}
+
+function onEdgeDoubleClick({ edge }: { edge: Edge }): void {
+  emits('edge-dblclick', edge)
+}
+
 function onDrop(event: DragEvent): void {
   const data = event.dataTransfer?.getData('application/json')
   if (!data) return
 
   try {
     const nodeTemplate = JSON.parse(data)
-    const position = screenToFlowPosition({
-      x: event.clientX,
-      y: event.clientY,
-    })
-    if (position) {
-      emits('add-node', nodeTemplate, position)
-    }
+    // @ts-expect-error - screenToFlowPosition may not be in types
+    const pos = useVueFlow().screenToFlowPosition({ x: event.clientX, y: event.clientY })
+    const position = pos || { x: event.clientX - 100, y: event.clientY - 60 }
+    emits('add-node', nodeTemplate, position)
   } catch (e) {
     // Failed to parse dropped node data - silently ignore invalid drops
   }

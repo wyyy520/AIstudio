@@ -1,0 +1,113 @@
+{
+  "id": "matlab-simulation",
+  "name": "MATLAB 仿真插件",
+  "version": "1.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "runtime",
+  "description": "MATLAB 仿真与算法开发插件，支持 Simulink、控制系统、信号处理等功能",
+  "author": "AIStudio",
+  "nodes": [
+    {
+      "type": "simulation.matlab_script",
+      "name": "MATLAB 脚本",
+      "description": "执行 MATLAB 脚本或函数",
+      "inputs": [
+        { "id": "script", "name": "脚本", "type": "text", "required": true },
+        { "id": "data", "name": "输入数据", "type": "csv" }
+      ],
+      "outputs": [
+        { "id": "result", "name": "执行结果", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "timeout": { "type": "integer", "default": 60, "minimum": 1, "description": "超时（秒）" },
+          "workspace": { "type": "string", "description": "MATLAB 工作目录" }
+        }
+      }
+    },
+    {
+      "type": "simulation.simulink",
+      "name": "Simulink 模型",
+      "description": "运行 Simulink 仿真模型",
+      "inputs": [
+        { "id": "model", "name": "模型文件", "type": "file", "required": true }
+      ],
+      "outputs": [
+        { "id": "output", "name": "仿真数据", "type": "csv" },
+        { "id": "scope", "name": "示波器数据", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "stop_time": { "type": "number", "default": 10, "description": "仿真停止时间" },
+          "solver": { "type": "string", "default": "ode45", "enum": ["ode45", "ode23", "ode113", "ode15s"], "description": "求解器" }
+        }
+      }
+    },
+    {
+      "type": "simulation.pid",
+      "name": "PID 控制器",
+      "description": "PID 控制算法仿真",
+      "inputs": [
+        { "id": "setpoint", "name": "设定值", "type": "number", "required": true },
+        { "id": "feedback", "name": "反馈值", "type": "number", "required": true }
+      ],
+      "outputs": [
+        { "id": "output", "name": "控制输出", "type": "number" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "kp": { "type": "number", "default": 1.0, "description": "比例系数" },
+          "ki": { "type": "number", "default": 0.1, "description": "积分系数" },
+          "kd": { "type": "number", "default": 0.05, "description": "微分系数" },
+          "dt": { "type": "number", "default": 0.01, "description": "采样周期" }
+        }
+      }
+    },
+    {
+      "type": "simulation.optimization",
+      "name": "优化求解器",
+      "description": "使用 MATLAB 优化工具箱求解",
+      "inputs": [
+        { "id": "objective", "name": "目标函数", "type": "text", "required": true },
+        { "id": "constraints", "name": "约束条件", "type": "json" }
+      ],
+      "outputs": [
+        { "id": "optimal", "name": "最优解", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "method": { "type": "string", "default": "fmincon", "enum": ["fmincon", "ga", "particleswarm", "patternsearch"], "description": "优化方法" }
+        }
+      }
+    },
+    {
+      "type": "simulation.signal_processing",
+      "name": "信号处理",
+      "description": "数字信号处理与分析",
+      "inputs": [
+        { "id": "signal", "name": "信号数据", "type": "csv", "required": true }
+      ],
+      "outputs": [
+        { "id": "processed", "name": "处理结果", "type": "csv" },
+        { "id": "spectrum", "name": "频谱", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "method": { "type": "string", "default": "fft", "enum": ["fft", "filter", "wavelet", "hilbert"], "description": "处理方法" },
+          "fs": { "type": "number", "default": 1000, "description": "采样频率（Hz）" }
+        }
+      }
+    }
+  ],
+  "runtime": {
+    "name": "matlab",
+    "version": ">=R2020b",
+    "executable": "matlab"
+  },
+  "supported_targets": ["matlab"]
+}

@@ -65,6 +65,24 @@ type Filter struct {
 }
 
 // ============================================================================
+// Log Interface
+// ============================================================================
+
+// Logger is the logging interface used throughout the system.
+// Both LogCenter and PersistentLogCenter implement it.
+type Logger interface {
+	Log(level Level, source, message string)
+	Logf(level Level, source, format string, args ...interface{})
+	LogEntry(entry Entry)
+	Debug(source, message string)
+	Info(source, message string)
+	Warn(source, message string)
+	Error(source, message string)
+	Query(filter Filter) []Entry
+	Subscribe(listener func(Entry)) func()
+}
+
+// ============================================================================
 // Log Center
 // ============================================================================
 

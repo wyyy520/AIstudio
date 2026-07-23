@@ -1,4 +1,4 @@
-package runtime
+﻿package runtime
 
 import (
 	"bufio"
@@ -34,7 +34,7 @@ const (
 // ============================================================================
 
 // CommandExecutor executes commands with real-time log streaming.
-// This is the low-level primitive — it knows nothing about projects or workflows.
+// This is the low-level primitive 鈥?it knows nothing about projects or workflows.
 type CommandExecutor interface {
 	// Execute runs a command and returns the result.
 	Execute(ctx context.Context, config RunConfig) *RunResult
@@ -81,7 +81,7 @@ func newBaseExecutor() *baseExecutor {
 }
 
 // ============================================================================
-// Local Executor — runs commands as subprocesses on the local machine
+// Local Executor 鈥?runs commands as subprocesses on the local machine
 // ============================================================================
 
 // LocalExecutor runs commands in a subprocess with real-time log streaming.
@@ -300,7 +300,7 @@ func (e *LocalExecutor) ListRunning() []*RunStatus {
 }
 
 // ============================================================================
-// Docker Executor — runs commands inside a Docker container
+// Docker Executor 鈥?runs commands inside a Docker container
 // ============================================================================
 
 // DockerConfig configures the Docker executor.
@@ -525,7 +525,7 @@ func (e *DockerExecutor) SetLogger(logger func(LogEntry)) {
 }
 
 // ============================================================================
-// SSH Executor — runs commands on a remote machine via SSH
+// SSH Executor 鈥?runs commands on a remote machine via SSH
 // ============================================================================
 
 // SSHConfig configures the SSH executor.
@@ -565,7 +565,7 @@ func (e *SSHExecutor) Execute(ctx context.Context, config RunConfig) *RunResult 
 
 	// Build SSH args
 	sshArgs := []string{
-		"-o", "StrictHostKeyChecking=accept-new",
+		"-o", "StrictHostKeyChecking=yes",
 	}
 
 	if e.config.Port > 0 {

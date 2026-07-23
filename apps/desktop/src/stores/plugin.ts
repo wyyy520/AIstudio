@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import type { Plugin, PluginCategory, InstallTask, InstallStep } from '@/pages/PluginStore/types'
 import type { ApiPluginSummary, ApiPlugin } from '@/api/plugin'
 import * as pluginApi from '@/api/plugin'
-import { useWorkflowStore } from '@/stores/workflow'
+import { useWorkflowStore } from '@/workflow/store'
 
 // Map Backend ApiPluginSummary to Frontend Plugin type
 function mapSummaryToPlugin(api: ApiPluginSummary): Plugin {
@@ -101,7 +101,7 @@ const FALLBACK_PLUGINS: Plugin[] = [
   { id: 'faster-rcnn-ssd', name: 'Faster-RCNN/SSD 检测', version: '1.0.0', author: 'AIStudio', source: 'registry' as const, sourceUrl: '', description: '经典两阶段和一阶段目标检测算法 Faster-RCNN、SSD，ResNet/MobileNetV2 主干', category: 'vision' as PluginCategory, icon: getCategoryIcon('vision'), status: 'not-installed' as const, capabilities: ['faster_rcnn', 'ssd_detect'], workflowNodes: [{ name: 'Faster-RCNN', type: 'vision', category: 'vision' as const }, { name: 'SSD 检测', type: 'vision', category: 'vision' as const }], dependencies: [], agentTools: [], tags: ['vision', 'detection', 'rcnn', 'ssd'], size: '560MB', downloads: 7200, githubUrl: '', readme: '' },
   { id: 'unet-mask-rcnn', name: 'U-Net/Mask-RCNN 分割', version: '1.0.0', author: 'AIStudio', source: 'registry' as const, sourceUrl: '', description: '语义分割 U-Net 和实例分割 Mask-RCNN，支持自定义训练', category: 'vision' as PluginCategory, icon: getCategoryIcon('vision'), status: 'not-installed' as const, capabilities: ['unet_segment', 'mask_rcnn'], workflowNodes: [{ name: 'U-Net 分割', type: 'vision', category: 'vision' as const }, { name: 'Mask-RCNN', type: 'vision', category: 'vision' as const }], dependencies: [], agentTools: [], tags: ['vision', 'segmentation', 'unet'], size: '480MB', downloads: 5500, githubUrl: '', readme: '' },
   { id: 'simulation-traffic', name: 'SUMO 交通仿真', version: '1.0.2', author: 'AIStudio', source: 'registry' as const, sourceUrl: '', description: 'SUMO 开源交通仿真平台集成，支持道路网络建模、车流仿真和数据导出', category: 'simulation' as PluginCategory, icon: getCategoryIcon('simulation'), status: 'not-installed' as const, capabilities: ['sumo_traffic'], workflowNodes: [{ name: 'SUMO 仿真', type: 'simulation', category: 'simulation' as const }], dependencies: [], agentTools: [], tags: ['simulation', 'traffic', 'sumo'], size: '320MB', downloads: 3800, githubUrl: '', readme: '' },
-  { id: 'data-tools', name: '数据处理工具集', version: '1.0.0', author: 'AIStudio', source: 'registry' as const, sourceUrl: '', description: '数据加载、清洗、归一化、分割等数据预处理工具集', category: 'system' as PluginCategory, icon: getCategoryIcon('system'), status: 'not-installed' as const, capabilities: ['dataset_loader', 'data_cleaning', 'normalize', 'data_split'], workflowNodes: [{ name: 'Dataset 加载', type: 'dataset', category: 'data' as const }, { name: '数据清洗', type: 'data', category: 'data' as const }, { name: '归一化', type: 'data', category: 'data' as const }], dependencies: [], agentTools: [], tags: ['data', 'preprocessing', 'normalize'], size: '120MB', downloads: 12500, githubUrl: '', readme: '' },
+  { id: 'data-tools', name: '数据处理工具集', version: '1.0.0', author: 'AIStudio', source: 'registry' as const, sourceUrl: '', description: '数据加载、清洗、归一化、分割等数据预处理工具集', category: 'system' as PluginCategory, icon: getCategoryIcon('system'), status: 'not-installed' as const, capabilities: ['dataset_loader', 'data_cleaning', 'normalize', 'data_split'], workflowNodes: [{ name: 'Dataset 加载', type: 'dataset', category: 'system' as const }, { name: '数据清洗', type: 'data', category: 'system' as const }, { name: '归一化', type: 'data', category: 'system' as const }], dependencies: [], agentTools: [], tags: ['data', 'preprocessing', 'normalize'], size: '120MB', downloads: 12500, githubUrl: '', readme: '' },
   { id: 'mcp-server', name: 'MCP 服务连接器', version: '1.1.0', author: 'AIStudio', source: 'registry' as const, sourceUrl: '', description: 'Model Context Protocol 服务连接器，连接外部 MCP 服务扩展 AI Studio 功能', category: 'mcp' as PluginCategory, icon: getCategoryIcon('mcp'), status: 'not-installed' as const, capabilities: ['mcp_connect'], workflowNodes: [{ name: 'MCP 连接', type: 'mcp', category: 'mcp' as const }], dependencies: [], agentTools: [], tags: ['mcp', 'connect', 'service'], size: '60MB', downloads: 2100, githubUrl: '', readme: '' },
 ]
 
@@ -316,7 +316,7 @@ export const usePluginStore = defineStore('plugin', () => {
 
   async function simulateInstallProgress(task: InstallTask, plugin: Plugin) {
     for (let i = 0; i < task.steps.length; i++) {
-      if (task.status === 'cancelled') break
+      if ((task as InstallTask).status === 'cancelled') break
 
       const step = task.steps[i]
       step.status = 'in-progress'
@@ -325,7 +325,7 @@ export const usePluginStore = defineStore('plugin', () => {
       const duration = 300 + Math.random() * 500
       await new Promise(resolve => setTimeout(resolve, duration))
 
-      if (task.status === 'cancelled') break
+      if ((task as InstallTask).status === 'cancelled') break
 
       step.status = 'completed'
       step.duration = Math.round(duration)

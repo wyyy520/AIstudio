@@ -6,7 +6,17 @@ import (
 	"github.com/aistudio/packages/workflow"
 )
 
-// Generator generates a complete project from a workflow.
+// ============================================================================
+// Generator Interface
+//
+// Each Generator is responsible for one target platform.
+// Generators create real, runnable engineering projects on the filesystem.
+// Generator receives an ExecutionPlan (NOT a raw Workflow) which contains
+// the resolved execution order, per-node plans, dependency information,
+// and full workflow data already computed by the compiler.
+// ============================================================================
+
+// Generator generates a complete project from an ExecutionPlan.
 // Each Generator is responsible for one target platform.
 type Generator interface {
 	// ID returns the unique generator identifier (e.g., "python", "matlab").
@@ -21,8 +31,10 @@ type Generator interface {
 	// Version returns the generator version.
 	Version() string
 
-	// Generate generates a complete project from a workflow.
-	Generate(ctx context.Context, wf *workflow.Workflow, opts CompileOptions) (*GenerateResult, error)
+	// Generate generates a complete project from an ExecutionPlan.
+	// The ExecutionPlan contains the resolved DAG in execution order,
+	// per-node configuration, templates, and embedded workflow data.
+	Generate(ctx context.Context, plan *ExecutionPlan, opts CompileOptions) (*GenerateResult, error)
 
 	// RuntimeRequirement returns the runtime bundle required for this project.
 	RuntimeRequirement(wf *workflow.Workflow) (*RuntimeRequirement, error)
@@ -33,15 +45,19 @@ type Generator interface {
 	// EstimateResources estimates the resources needed for generation.
 	EstimateResources(wf *workflow.Workflow) (*ResourceEstimate, error)
 
-	// CompileTimeValidate checks if the host system has the required tools.
+	// CompileTimeValidate checks if the host system has the required tools
+	// (e.g., checks that python is installed).
 	CompileTimeValidate(ctx context.Context) error
-
-	// Plan returns a compilation plan without writing files.
-	Plan(ctx context.Context, wf *workflow.Workflow, opts CompileOptions) (*CompilePlan, error)
 }
 
-// BaseGenerator provides common generator functionality.
+// ============================================================================
+// BaseGenerator
+//
+// Provides common functionality for all generators.
 // Embed this in your generator to get default implementations.
+// ============================================================================
+
+// BaseGenerator provides common generator functionality.
 type BaseGenerator struct {
 	TargetID      workflow.Target
 	GeneratorName string
@@ -49,10 +65,10 @@ type BaseGenerator struct {
 	GeneratorVer  string
 }
 
-func (b *BaseGenerator) ID() workflow.Target  { return b.TargetID }
-func (b *BaseGenerator) Name() string          { return b.GeneratorName }
-func (b *BaseGenerator) Description() string   { return b.GeneratorDesc }
-func (b *BaseGenerator) Version() string       { return b.GeneratorVer }
+func (b *BaseGenerator) ID() workflow.Target { return b.TargetID }
+func (b *BaseGenerator) Name() string         { return b.GeneratorName }
+func (b *BaseGenerator) Description() string  { return b.GeneratorDesc }
+func (b *BaseGenerator) Version() string      { return b.GeneratorVer }
 
 // DefaultValidate performs basic validation common to all generators.
 func (b *BaseGenerator) DefaultValidate(wf *workflow.Workflow) error {
@@ -72,18 +88,4 @@ func (b *BaseGenerator) DefaultEstimateResources(wf *workflow.Workflow) (*Resour
 // DefaultCompileTimeValidate is a no-op validation.
 func (b *BaseGenerator) DefaultCompileTimeValidate(ctx context.Context) error {
 	return nil
-}
-
-// DefaultPlan returns a basic plan from available metadata.
-func (b *BaseGenerator) DefaultPlan(ctx context.Context, wf *workflow.Workflow, opts CompileOptions) (*CompilePlan, error) {
-	est, _ := b.DefaultEstimateResources(wf)
-	return &CompilePlan{
-		GeneratorID:     b.TargetID,
-		GeneratorName:   b.GeneratorName,
-		ProjectName:     opts.ProjectName,
-		OutputDir:       opts.OutputDir,
-		EstimatedFiles:  est.EstimatedFiles,
-		EstimatedSizeKB: est.EstimatedSizeKB,
-		Validated:       true,
-	}, nil
 }

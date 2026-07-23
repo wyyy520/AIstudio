@@ -1,0 +1,59 @@
+{
+  "id": "rt-detr",
+  "name": "RT-DETR 实时检测",
+  "version": "1.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "node",
+  "description": "百度 RT-DETR 实时目标检测 Transformer，基于 DETR 的高性能实时检测模型",
+  "author": "Baidu / AIStudio",
+  "nodes": [
+    {
+      "type": "vision.rtdetr_train",
+      "name": "RT-DETR 训练",
+      "description": "训练 RT-DETR 目标检测模型",
+      "inputs": [
+        { "id": "dataset", "name": "数据集", "type": "dataset", "required": true }
+      ],
+      "outputs": [
+        { "id": "model", "name": "训练模型", "type": "model" },
+        { "id": "metrics", "name": "训练指标", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "model_variant": { "type": "string", "default": "rtdetr_r18vd", "enum": ["rtdetr_r18vd", "rtdetr_r34vd", "rtdetr_r50vd", "rtdetr_r101vd"], "description": "模型变体" },
+          "epochs": { "type": "integer", "default": 100, "minimum": 1, "maximum": 1000 },
+          "batch_size": { "type": "integer", "default": 8, "minimum": 1 },
+          "learning_rate": { "type": "number", "default": 0.0001, "minimum": 1e-6, "maximum": 0.1 },
+          "device": { "type": "string", "default": "cuda", "enum": ["cuda", "cpu"] }
+        }
+      }
+    },
+    {
+      "type": "vision.rtdetr_inference",
+      "name": "RT-DETR 推理",
+      "description": "使用 RT-DETR 进行目标检测推理",
+      "inputs": [
+        { "id": "image", "name": "图像", "type": "image", "required": true },
+        { "id": "model", "name": "模型", "type": "model", "required": true }
+      ],
+      "outputs": [
+        { "id": "detections", "name": "检测结果", "type": "json" },
+        { "id": "visualized", "name": "可视化图像", "type": "image" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "confidence": { "type": "number", "default": 0.5, "minimum": 0, "maximum": 1 },
+          "device": { "type": "string", "default": "cuda", "enum": ["cuda", "cpu"] }
+        }
+      }
+    }
+  ],
+  "dependencies": {
+    "required": [],
+    "optional": [],
+    "plugins": []
+  },
+  "supported_targets": ["python"]
+}

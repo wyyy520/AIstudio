@@ -132,16 +132,17 @@ func LoadConfig() (*Config, error) {
 // -----------------------------------------------------------------------------
 
 func (c *Config) resolvePathsFrom(baseDir string) error {
-	root := c.Paths.Root
+root := c.Paths.Root
 	if root == "" {
 		root = baseDir
 	}
 	if !filepath.IsAbs(root) {
-		root, err := filepath.Abs(root)
+		var absRoot string
+		absRoot, err := filepath.Abs(root)
 		if err != nil {
 			return fmt.Errorf("无法获取根目录绝对路径: %w", err)
 		}
-		root = root
+		root = absRoot
 	}
 	c.Paths.Root = root
 

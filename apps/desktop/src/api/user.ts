@@ -9,25 +9,25 @@ export interface User {
 }
 
 export async function getUsers(): Promise<User[]> {
-  const res = await http.get('/api/users')
+  const res = await http.get('/users')
   return (res as unknown as { data: User[] }).data
 }
 
 export async function getUserById(id: number): Promise<User> {
-  const res = await http.get(`/api/users/${id}`)
+  const res = await http.get(`/users/${id}`)
   return (res as unknown as { data: User }).data
 }
 
 export async function createUser(data: { username: string; email: string; password: string }): Promise<User> {
-  const res = await http.post('/api/users', data)
+  const res = await http.post('/users', data)
   return (res as unknown as { data: User }).data
 }
 
 export async function updateUser(id: number, data: Partial<{ username: string; email: string; password: string }>): Promise<User> {
-  const res = await http.put(`/api/users/${id}`, data)
+  const res = await http.put(`/users/${id}`, data)
   return (res as unknown as { data: User }).data
 }
 
 export async function deleteUser(id: number): Promise<void> {
-  await http.delete(`/api/users/${id}`)
+  await http.delete(`/users/${id}`)
 }

@@ -343,7 +343,7 @@ func (m *Manager) GetAgentMCPTools() []*AgentMCPTool {
 					return nil, err
 				}
 				if !resp.Success {
-					return nil, fmt.Errorf(resp.Error)
+					return nil, fmt.Errorf("%s", resp.Error)
 				}
 				return resp.Output, nil
 			},

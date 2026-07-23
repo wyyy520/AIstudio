@@ -1,0 +1,38 @@
+# ANSYS Workbench Journal - AIStudio Generated
+# Project: {{.ProjectName}}
+# Open in ANSYS Workbench: File → Scripting → Run Journal
+
+import os
+import json
+
+# Load execution data
+project_dir = os.path.dirname(os.path.abspath(__file__))
+
+print("=" * 60)
+print("AIStudio Generated ANSYS Project: {{.ProjectName}}")
+print("=" * 60)
+
+{{range .Executions}}
+# Execute: {{.NodeName}} ({{.NodeType}})
+print("\n[Step] {{.NodeName}}")
+print("  Script: {{.ScriptName}}")
+
+{{if eq (nodeCategory .NodeType) "mechanical"}}
+# Mechanical Analysis
+import clr
+clr.AddReference("Ans.Core")
+from Ansys.Mechanical.Application import ExtAPI
+ExtAPI.Application.ScriptByName("{{.ScriptName}}")
+{{end}}
+
+{{if eq (nodeCategory .NodeType) "fluent"}}
+# Fluent Analysis
+import ansys.fluent.core as pyfluent
+solver = pyfluent.launch_fluent()
+solver.file.read_journal("{{.ScriptName}}")
+{{end}}
+
+{{end}}
+
+print("\n✅ ANSYS project execution complete.")
+print("Results saved to: ./results/")

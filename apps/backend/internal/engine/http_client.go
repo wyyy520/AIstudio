@@ -18,9 +18,13 @@ type httpClient struct {
 	taskPath  string
 }
 
+// taskPayload matches the Engine Server's expected format:
+//   {"task_id": "...", "plugin": "yolo", "action": "train", "params": {...}}
 type taskPayload struct {
+	TaskID  string      `json:"task_id"`
+	Plugin  string      `json:"plugin"`
 	Action  string      `json:"action"`
-	Payload interface{} `json:"payload"`
+	Params  interface{} `json:"params"`
 }
 
 func NewClient(config *Config) EngineClient {
@@ -72,8 +76,10 @@ func (c *httpClient) Health(ctx context.Context) (*HealthResponse, error) {
 
 func (c *httpClient) Infer(ctx context.Context, req InferRequest) (*InferResponse, error) {
 	payload := taskPayload{
-		Action:  "infer",
-		Payload: req,
+		TaskID: req.TaskID,
+		Plugin: req.Plugin,
+		Action: "predict",
+		Params: req.Params,
 	}
 	var result InferResponse
 	if err := c.doTask(ctx, payload, &result); err != nil {
@@ -84,8 +90,10 @@ func (c *httpClient) Infer(ctx context.Context, req InferRequest) (*InferRespons
 
 func (c *httpClient) Train(ctx context.Context, req TrainRequest) (*TrainResponse, error) {
 	payload := taskPayload{
-		Action:  "train",
-		Payload: req,
+		TaskID: req.TaskID,
+		Plugin: req.Plugin,
+		Action: "train",
+		Params: req.Config,
 	}
 	var result TrainResponse
 	if err := c.doTask(ctx, payload, &result); err != nil {
@@ -96,8 +104,13 @@ func (c *httpClient) Train(ctx context.Context, req TrainRequest) (*TrainRespons
 
 func (c *httpClient) LoadModel(ctx context.Context, req LoadModelRequest) (*LoadModelResponse, error) {
 	payload := taskPayload{
-		Action:  "load_model",
-		Payload: req,
+		TaskID: req.TaskID,
+		Plugin: req.Plugin,
+		Action: "load_model",
+		Params: map[string]string{
+			"model_name": req.ModelName,
+			"model_path": req.ModelPath,
+		},
 	}
 	var result LoadModelResponse
 	if err := c.doTask(ctx, payload, &result); err != nil {

@@ -13,7 +13,7 @@ class ApiClient {
   async init() {
     if (isTauri()) {
       const backendUrl = await getBackendUrl()
-      this.baseUrl = `${backendUrl}/api/v1`
+      this.baseUrl = `${backendUrl}/api`
     }
   }
 
@@ -55,7 +55,7 @@ class ApiClient {
   }
 
   getWsUrl(): string {
-    return this.baseUrl.replace(/^http/, 'ws')
+    return this.baseUrl.replace(/^http/, 'ws') + '/v1/ws'
   }
 }
 

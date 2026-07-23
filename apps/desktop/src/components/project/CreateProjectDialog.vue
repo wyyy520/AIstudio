@@ -82,14 +82,19 @@ import type { ProjectTemplate } from '@/types/project'
 
 interface Props {
   visible: boolean
-  templates: ProjectTemplate[]
+  templates?: ProjectTemplate[]
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  templates: () => [
+    { id: 'python', name: 'Python AI', description: 'AI training, inference, data processing', type: 'custom', framework: 'pytorch', plugins: [] },
+    { id: 'custom', name: 'Custom', description: 'Empty project, build from scratch', type: 'custom', framework: 'pytorch', plugins: [] },
+  ],
+})
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]
-  create: [data: { name: string; template: string; framework: string; plugins: string[] }]
+  create: [data: { name: string; description?: string; target?: string }]
 }>()
 
 const form = reactive({
@@ -131,9 +136,8 @@ function create() {
   const template = selectedTemplate.value
   emit('create', {
     name: form.name,
-    template: template?.name || 'Empty Project',
-    framework: form.framework,
-    plugins: template?.plugins || [],
+    description: `Template: ${template?.name || 'Custom'}`,
+    target: form.framework,
   })
 
   emit('update:visible', false)

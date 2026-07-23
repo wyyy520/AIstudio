@@ -17,6 +17,11 @@ func YOLOPredictExecutor(client engine.EngineClient) func(ctx context.Context, i
 			modelName = "yolov8"
 		}
 
+		taskID, _ := config["task_id"].(string)
+		if taskID == "" {
+			taskID = "yolo-predict-" + modelName
+		}
+
 		inferInput := make(map[string]interface{})
 		if image != "" {
 			inferInput["image"] = image
@@ -26,6 +31,8 @@ func YOLOPredictExecutor(client engine.EngineClient) func(ctx context.Context, i
 		}
 
 		resp, err := client.Infer(ctx, engine.InferRequest{
+			TaskID:    taskID,
+			Plugin:    "yolo",
 			ModelName: modelName,
 			Input:     inferInput,
 			Params:    config,

@@ -30,7 +30,7 @@ import (
 // It is the single point of dependency injection for the API layer.
 type Container struct {
 	EventBus           *eventbus.EventBus
-	LogCenter          *logcenter.LogCenter
+	LogCenter          logcenter.Logger
 	ProjectManager     *project.Manager
 	Compiler           compiler.Compiler
 	Runtime            runtime.Runtime
@@ -54,7 +54,7 @@ type Container struct {
 // ContainerParams defines the dependencies for creating a Container.
 type ContainerParams struct {
 	EventBus         *eventbus.EventBus
-	LogCenter        *logcenter.LogCenter
+	LogCenter        logcenter.Logger
 	ProjectManager   *project.Manager
 	Compiler         compiler.Compiler
 	Runtime          runtime.Runtime
@@ -132,11 +132,6 @@ func NewServices(container *Container) *Services {
 // ============================================================================
 // Keep existing service implementations
 // ============================================================================
-
-// ProjectService provides project-related business logic.
-func (s *Services) ProjectService() *ProjectService {
-	return NewProjectService(s.DB, s.ProjectManager)
-}
 
 // WorkflowService provides workflow-related business logic.
 // Uses lazy-loaded singleton to ensure plugin/node registry connections are preserved.

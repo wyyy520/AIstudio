@@ -174,6 +174,12 @@ type ChatResponse struct {
 
 // Chat processes a chat message through the Agent.
 func (s *AgentService) Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error) {
+	return s.StreamChat(ctx, req, nil)
+}
+
+// StreamChat processes a chat message through the Agent with real-time streaming callbacks.
+// Each StreamEvent.Type is one of: "token" (LLM text), "action" (phase transitions), "done", "error".
+func (s *AgentService) StreamChat(ctx context.Context, req ChatRequest, cb agent.StreamCallback) (*ChatResponse, error) {
 	log.Printf("[agent-service] chat request: project=%s user=%s message=%q", req.ProjectID, req.UserID, req.Message)
 
 	if s.agent == nil {
@@ -187,8 +193,8 @@ func (s *AgentService) Chat(ctx context.Context, req ChatRequest) (*ChatResponse
 		skillNames = append(skillNames, sk.Name())
 	}
 
-	// Process through the Agent
-	resp, err := s.agent.Process(ctx, req.Message, req.ProjectID, req.UserID, skillNames, "")
+	// Process through the Agent with streaming
+	resp, err := s.agent.StreamProcess(ctx, req.Message, req.ProjectID, req.UserID, skillNames, "", cb)
 	if err != nil {
 		return nil, err
 	}

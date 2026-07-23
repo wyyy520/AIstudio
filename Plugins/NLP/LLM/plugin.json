@@ -1,0 +1,76 @@
+{
+  "id": "llm-node",
+  "name": "大语言模型节点",
+  "version": "1.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "node",
+  "description": "在工作流中集成大语言模型调用能力，支持 OpenAI、Claude、Gemini、Qwen 等模型",
+  "author": "AIStudio",
+  "nodes": [
+    {
+      "type": "llm.chat",
+      "name": "LLM 对话",
+      "description": "调用大语言模型进行对话生成",
+      "inputs": [
+        { "id": "prompt", "name": "提示词", "type": "text", "required": true },
+        { "id": "context", "name": "上下文", "type": "text" }
+      ],
+      "outputs": [
+        { "id": "response", "name": "模型回复", "type": "text" },
+        { "id": "tokens", "name": "Token 统计", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "provider": { "type": "string", "default": "openai", "enum": ["openai", "claude", "gemini", "deepseek", "qwen"], "description": "LLM 提供商" },
+          "model": { "type": "string", "default": "gpt-4o", "description": "模型名称" },
+          "temperature": { "type": "number", "default": 0.7, "minimum": 0, "maximum": 2 },
+          "max_tokens": { "type": "integer", "default": 2048, "minimum": 1, "maximum": 32768 }
+        }
+      }
+    },
+    {
+      "type": "llm.embedding",
+      "name": "LLM 嵌入",
+      "description": "将文本转换为向量嵌入",
+      "inputs": [
+        { "id": "text", "name": "文本", "type": "text", "required": true }
+      ],
+      "outputs": [
+        { "id": "embedding", "name": "向量嵌入", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "model": { "type": "string", "default": "text-embedding-3-small", "description": "嵌入模型" }
+        }
+      }
+    },
+    {
+      "type": "llm.rag",
+      "name": "RAG 检索增强生成",
+      "description": "基于知识库的检索增强生成",
+      "inputs": [
+        { "id": "query", "name": "查询", "type": "text", "required": true },
+        { "id": "knowledge_base", "name": "知识库", "type": "vector_db", "required": true }
+      ],
+      "outputs": [
+        { "id": "answer", "name": "回答", "type": "text" },
+        { "id": "references", "name": "引用来源", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "top_k": { "type": "integer", "default": 5, "minimum": 1, "maximum": 20, "description": "检索结果数量" },
+          "rerank": { "type": "boolean", "default": true, "description": "是否重排序" }
+        }
+      }
+    }
+  ],
+  "dependencies": {
+    "required": [],
+    "optional": ["openai", "anthropic", "google-ai"],
+    "plugins": []
+  },
+  "supported_targets": ["python"]
+}

@@ -1,4 +1,4 @@
-package auth
+﻿package auth
 
 import (
 	"crypto/hmac"
@@ -29,6 +29,14 @@ func SetJWTSecret(secret string) {
 		}
 		jwtSecret = []byte(secret)
 	})
+}
+
+// MustNotUseDefaultSecret panics if the default JWT secret is still configured.
+// Call this at startup in production to prevent insecure deployments.
+func MustNotUseDefaultSecret() {
+	if IsDefaultSecret() {
+		panic("FATAL: JWT secret is using the default value. Set AISTUDIO_JWT_SECRET or jwt.secret config before starting the server.")
+	}
 }
 
 // IsDefaultSecret returns true if the current JWT secret is the default (insecure) value.

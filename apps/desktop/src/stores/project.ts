@@ -1,96 +1,65 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Project, ProjectWorkflow, ProjectDataset, ProjectModel, ProjectExperiment } from '@/types/project'
+import type { ProjectSummary } from '@/api/project'
 import {
   getProjects,
   getProjectById,
   createProject as apiCreateProject,
+  updateProject as apiUpdateProject,
   deleteProject as apiDeleteProject,
-  updateProject,
-  type ApiProject,
+  openProject as apiOpenProject,
+  getRecentProjects,
+  scanProjects,
+  readWorkflow,
+  saveWorkflow,
 } from '@/api/project'
-import { getWorkflows, runWorkflow as apiRunWorkflow } from '@/api/workflow'
 
-export interface ProjectTemplate {
-  id: string
-  name: string
-  description: string
-  icon: string
-  category: string
-}
+// ============================================================================
+// Types
+// ============================================================================
 
-const mockTemplates: ProjectTemplate[] = [
-  { id: 'vision', name: 'AI Vision', description: 'Image classification, detection, segmentation', icon: 'eye', category: 'vision' },
-  { id: 'nlp', name: 'NLP', description: 'Text classification, NER, sentiment analysis', icon: 'message-square', category: 'nlp' },
-  { id: 'timeseries', name: 'Time Series', description: 'Forecasting, anomaly detection', icon: 'trending-up', category: 'timeseries' },
-  { id: 'custom', name: 'Custom', description: 'Empty project, build from scratch', icon: 'code', category: 'custom' },
-]
+export type ExplorerNodeType =
+  | 'dashboard'
+  | 'workflows'
+  | 'datasets'
+  | 'models'
+  | 'experiments'
+  | 'environment'
+  | 'outputs'
+  | 'logs'
 
-export type ExplorerNodeType = 'dashboard' | 'workflows' | 'datasets' | 'models' | 'experiments' | 'environment' | 'outputs' | 'logs'
+// ============================================================================
+// Store
+// ============================================================================
 
-// Map from Backend ApiProject to Frontend Project type
-function mapApiToProject(api: ApiProject): Project {
-  return {
-    id: String(api.id),
-    name: api.name,
-    type: 'custom',
-    status: (api.status as Project['status']) || 'idle',
-    createdAt: api.createdAt,
-    updatedAt: api.updatedAt,
-    description: api.description || '',
-    template: '',
-    framework: 'pytorch',
-    plugins: [],
-    workflows: [],
-    datasets: [],
-    models: [],
-    experiments: [],
-    environment: {
-      pythonVersion: '3.10.12',
-      cudaVersion: '12.1',
-      pytorchVersion: '2.1.0',
-      gpuStatus: 'ready',
-      dependencies: [],
-    },
-    outputs: [],
-    logs: [],
-  }
-}
-
-export const useProjectStore = defineStore('appProject', () => {
-  const projects = ref<Project[]>([])
-  const currentProject = ref<Project | null>(null)
+export const useProjectStore = defineStore('project', () => {
+  // --- State ---
+  const projects = ref<ProjectSummary[]>([])
+  const currentProject = ref<ProjectSummary | null>(null)
+  const recentProjects = ref<ProjectSummary[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   const activeExplorerNode = ref<ExplorerNodeType>('dashboard')
 
+  // --- Computed ---
   const sortedProjects = computed(() => {
-    return [...projects.value].sort((a, b) =>
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    return [...projects.value].sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     )
   })
 
   const projectCount = computed(() => projects.value.length)
 
-  const activeWorkflows = computed(() => {
-    if (!currentProject.value) return []
-    return currentProject.value.workflows.filter(w => w.status === 'running')
-  })
-
-  const completedExperiments = computed(() => {
-    if (!currentProject.value) return []
-    return currentProject.value.experiments.filter(e => e.status === 'completed')
-  })
+  // --- Fetch ---
 
   async function fetchProjects() {
     loading.value = true
     error.value = null
     try {
-      const apiProjects = await getProjects()
-      projects.value = apiProjects.map(mapApiToProject)
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : '获取项目列表失败'
-      console.error('[project-store] fetchProjects failed:', e)
+      projects.value = await getProjects()
+    } catch (e: any) {
+      error.value = e.message || '获取项目列表失败'
+      console.error('[project-store] fetchProjects:', e)
     } finally {
       loading.value = false
     }
@@ -100,59 +69,94 @@ export const useProjectStore = defineStore('appProject', () => {
     loading.value = true
     error.value = null
     try {
-      const apiProject = await getProjectById(id)
-      currentProject.value = mapApiToProject(apiProject)
-
-      // Fetch associated workflows
-      try {
-        const apiWorkflows = await getWorkflows(id)
-        currentProject.value.workflows = apiWorkflows.map(w => ({
-          id: String(w.id),
-          name: w.name,
-          version: '1.0.0',
-          nodeCount: 0,
-          updatedAt: w.updatedAt,
-          status: (w.status as ProjectWorkflow['status']) || 'idle',
-        }))
-      } catch {
-        // workflows may not be available
-      }
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : '获取项目详情失败'
-      console.error('[project-store] fetchProjectById failed:', e)
+      currentProject.value = await getProjectById(id)
+    } catch (e: any) {
+      error.value = e.message || '获取项目详情失败'
+      console.error('[project-store] fetchProjectById:', e)
     } finally {
       loading.value = false
     }
   }
 
+  async function fetchRecentProjects() {
+    try {
+      recentProjects.value = await getRecentProjects()
+    } catch (e) {
+      console.error('[project-store] fetchRecentProjects:', e)
+    }
+  }
+
+  // --- Create ---
+
   async function createNewProject(data: {
     name: string
-    template: string
-    framework: string
-    plugins: string[]
-  }) {
+    description?: string
+    target?: string
+  }): Promise<ProjectSummary | null> {
     loading.value = true
     error.value = null
     try {
-      const apiProject = await apiCreateProject({
-        name: data.name,
-        target: data.template || 'custom',
-        description: `Template: ${data.template}, Framework: ${data.framework}`,
-      })
-      const project = mapApiToProject(apiProject)
+      const project = await apiCreateProject(data)
       projects.value.push(project)
       currentProject.value = project
       return project
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : '创建项目失败'
-      console.error('[project-store] createNewProject failed:', e)
+    } catch (e: any) {
+      error.value = e.message || '创建项目失败'
+      console.error('[project-store] createNewProject:', e)
       return null
     } finally {
       loading.value = false
     }
   }
 
-  async function removeProject(id: string) {
+  // --- Open (real folder) ---
+
+  async function openProject(path: string): Promise<ProjectSummary | null> {
+    loading.value = true
+    error.value = null
+    try {
+      const project = await apiOpenProject(path)
+      // Add to local list if not already there
+      const exists = projects.value.find(p => p.id === project.id)
+      if (!exists) {
+        projects.value.push(project)
+      } else {
+        Object.assign(exists, project)
+      }
+      currentProject.value = project
+      return project
+    } catch (e: any) {
+      error.value = e.message || '打开项目失败'
+      console.error('[project-store] openProject:', e)
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // --- Update ---
+
+  async function updateCurrentProject(updates: {
+    name?: string
+    description?: string
+    target?: string
+    status?: string
+  }): Promise<boolean> {
+    if (!currentProject.value) return false
+    error.value = null
+    try {
+      const updated = await apiUpdateProject(currentProject.value.id, updates)
+      Object.assign(currentProject.value, updated)
+      return true
+    } catch (e: any) {
+      error.value = e.message || '更新项目失败'
+      return false
+    }
+  }
+
+  // --- Delete ---
+
+  async function removeProject(id: string): Promise<boolean> {
     loading.value = true
     error.value = null
     try {
@@ -163,31 +167,17 @@ export const useProjectStore = defineStore('appProject', () => {
         activeExplorerNode.value = 'dashboard'
       }
       return true
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : '删除项目失败'
-      console.error('[project-store] removeProject failed:', e)
+    } catch (e: any) {
+      error.value = e.message || '删除项目失败'
       return false
     } finally {
       loading.value = false
     }
   }
 
-  async function updateCurrentProject(updates: { name?: string; description?: string; status?: string }) {
-    if (!currentProject.value) return false
-    error.value = null
-    try {
-      await updateProject(currentProject.value.id, updates)
-      if (updates.name) currentProject.value.name = updates.name
-      if (updates.description) currentProject.value.description = updates.description
-      if (updates.status) currentProject.value.status = updates.status as Project['status']
-      return true
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : '更新项目失败'
-      return false
-    }
-  }
+  // --- Selection ---
 
-  function selectProject(project: Project) {
+  function selectProject(project: ProjectSummary) {
     currentProject.value = project
     activeExplorerNode.value = 'dashboard'
   }
@@ -196,69 +186,63 @@ export const useProjectStore = defineStore('appProject', () => {
     activeExplorerNode.value = node
   }
 
-  function updateWorkflowStatus(workflowId: string, status: ProjectWorkflow['status']) {
-    if (!currentProject.value) return
-    const workflow = currentProject.value.workflows.find(w => w.id === workflowId)
-    if (workflow) {
-      workflow.status = status
-    }
-  }
+  // --- Workflow I/O ---
 
-  const templates = ref<ProjectTemplate[]>(mockTemplates)
-
-  function fetchTemplates() {
-    // Templates are static for now, can be fetched from API later
-    return templates.value
-  }
-
-  async function runProjectWorkflow(workflowId: string) {
-    if (!currentProject.value) return null
+  async function loadWorkflow(projectId: string): Promise<any> {
     try {
-      const result = await apiRunWorkflow(workflowId)
-      updateWorkflowStatus(workflowId, 'running')
-      return result.id
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : '运行工作流失败'
+      return await readWorkflow(projectId)
+    } catch (e: any) {
+      error.value = e.message || '读取工作流失败'
       return null
     }
   }
 
-  // Backward compatibility aliases for views using simpler API
-  async function addProject(data: any) {
-    return createNewProject({
-      name: data.name,
-      template: 'custom',
-      framework: 'pytorch',
-      plugins: [],
-    })
+  async function persistWorkflow(projectId: string, data: any): Promise<boolean> {
+    try {
+      await saveWorkflow(projectId, data)
+      return true
+    } catch (e: any) {
+      error.value = e.message || '保存工作流失败'
+      return false
+    }
   }
 
-  async function editProject(id: string, data: any) {
-    return updateCurrentProject(data)
+  // --- Scan ---
+
+  async function rescanProjects(): Promise<boolean> {
+    error.value = null
+    try {
+      projects.value = await scanProjects()
+      return true
+    } catch (e: any) {
+      error.value = e.message || '扫描项目失败'
+      return false
+    }
   }
 
   return {
+    // State
     projects,
     currentProject,
+    recentProjects,
     loading,
     error,
     activeExplorerNode,
+    // Computed
     sortedProjects,
     projectCount,
-    activeWorkflows,
-    completedExperiments,
-    templates,
+    // Actions
     fetchProjects,
     fetchProjectById,
+    fetchRecentProjects,
     createNewProject,
-    removeProject,
+    openProject,
     updateCurrentProject,
+    removeProject,
     selectProject,
     setExplorerNode,
-    updateWorkflowStatus,
-    fetchTemplates,
-    runProjectWorkflow,
-    addProject,
-    editProject,
+    loadWorkflow,
+    persistWorkflow,
+    rescanProjects,
   }
 })

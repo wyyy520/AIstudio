@@ -83,8 +83,8 @@ func (a *PythonAdapter) CompileTimeValidate(ctx context.Context) error {
 	return a.inner.CompileTimeValidate(ctx)
 }
 
-func (a *PythonAdapter) Generate(ctx context.Context, wf *workflow.Workflow, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
-	pwf := toPkgWorkflow(wf)
+func (a *PythonAdapter) Generate(ctx context.Context, plan *compiler.ExecutionPlan, opts compiler.CompileOptions) (*compiler.GenerateResult, error) {
+	pwf := toPkgWorkflow(plan.Workflow)
 	popts := toPkgOptions(opts)
 	pres, err := a.inner.Generate(ctx, pwf, popts)
 	if err != nil {

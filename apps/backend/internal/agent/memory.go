@@ -158,11 +158,11 @@ func (m *Memory) SaveConversation(entry ConversationEntry) error {
 // GetConversationHistory returns recent conversation entries.
 func (m *Memory) GetConversationHistory(projectID string, limit int) ([]ConversationEntry, error) {
 	var entries []ConversationEntry
-	query := m.db.Order("created_at DESC").Limit(limit)
+	query := m.db.Model(&ConversationEntry{})
 	if projectID != "" {
 		query = query.Where("project_id = ?", projectID)
 	}
-	result := query.Find(&entries)
+	result := query.Order("created_at DESC").Limit(limit).Find(&entries)
 	return entries, result.Error
 }
 

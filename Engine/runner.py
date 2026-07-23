@@ -48,6 +48,23 @@ PLUGIN_REGISTRY = {
         "train": "vision.yolo.train",
         "predict": "vision.yolo.predict",
     },
+    "nlp": {
+        "text-generation": "inference.base_inference",
+        "text_classification": "inference.base_inference",
+        "summarization": "inference.base_inference",
+        "translation": "inference.base_inference",
+        "ner": "inference.base_inference",
+    },
+    "data": {
+        "preprocess": "dataset.preprocessor",
+        "split": "dataset.splitter",
+        "convert": "dataset.converter",
+        "read": "dataset.reader",
+    },
+    "model": {
+        "load": "model.loader",
+        "export": "result.model_export",
+    },
 }
 
 
@@ -72,7 +89,8 @@ def dispatch(plugin: str, action: str, params: dict[str, Any]):
     """Dispatch to the appropriate plugin handler."""
     plugin_config = PLUGIN_REGISTRY.get(plugin)
     if not plugin_config:
-        raise RuntimeError(f"Unknown plugin: {plugin}. Supported: {list(PLUGIN_REGISTRY.keys())}")
+        raise RuntimeError(f"Unknown plugin: {plugin}. "
+                           f"Supported: {list(PLUGIN_REGISTRY.keys())}")
 
     handler_module = plugin_config.get(action)
     if not handler_module:
@@ -83,23 +101,37 @@ def dispatch(plugin: str, action: str, params: dict[str, Any]):
                 f"handler={handler_module}")
 
     try:
-        mod = __import__(handler_module, fromlist=["run_train", "run_predict"])
+        mod = __import__(handler_module, fromlist=["run"])
     except ImportError as e:
         raise RuntimeError(f"Failed to import handler {handler_module}: {e}")
 
-    if action == "train":
-        from vision.yolo.config import YOLOTrainConfig
-        config = YOLOTrainConfig.from_dict(params)
-        run_func = getattr(mod, "run_train", None)
-    elif action == "predict":
-        from vision.yolo.config import YOLOPredictConfig
-        config = YOLOPredictConfig.from_dict(params)
-        run_func = getattr(mod, "run_predict", None)
+    # Resolve config and run function based on plugin + action
+    if plugin == "yolo":
+        if action == "train":
+            from vision.yolo.config import YOLOTrainConfig
+            config = YOLOTrainConfig.from_dict(params)
+            run_func = getattr(mod, "run_train", None)
+        elif action == "predict":
+            from vision.yolo.config import YOLOPredictConfig
+            config = YOLOPredictConfig.from_dict(params)
+            run_func = getattr(mod, "run_predict", None)
+        else:
+            raise RuntimeError(f"No config mapping for yolo action: {action}")
     else:
-        raise RuntimeError(f"No config mapping for action: {action}")
+        # Generic handler: pass params directly, call run()
+        config = params
+        run_func = getattr(mod, "run", None)
+        if run_func is None:
+            raise RuntimeError(
+                f"Handler {handler_module} missing 'run(params)' for "
+                f"plugin={plugin}, action={action}"
+            )
 
     if run_func is None:
-        raise RuntimeError(f"Handler {handler_module} has no run function for action '{action}'")
+        raise RuntimeError(
+            f"Handler {handler_module} has no run function for "
+            f"action='{action}'"
+        )
 
     run_func(config)
 

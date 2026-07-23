@@ -1,8 +1,3 @@
-/**
- * AIChat Mock Data
- * Provides quick action templates for the chat interface
- */
-
 import type { QuickAction } from './types'
 
 export const mockQuickActions: QuickAction[] = [

@@ -1,0 +1,51 @@
+{
+  "id": "ocr-vision",
+  "name": "OCR 文字识别",
+  "version": "1.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "node",
+  "description": "光学字符识别 (OCR) 插件，支持 PaddleOCR、Tesseract、EasyOCR 等引擎",
+  "author": "AIStudio",
+  "nodes": [
+    {
+      "type": "vision.ocr",
+      "name": "OCR 识别",
+      "description": "从图像中识别文字",
+      "inputs": [
+        { "id": "image", "name": "图像", "type": "image", "required": true }
+      ],
+      "outputs": [
+        { "id": "text", "name": "识别文字", "type": "text" },
+        { "id": "boxes", "name": "文字区域", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "engine": { "type": "string", "default": "paddleocr", "enum": ["paddleocr", "tesseract", "easyocr"], "description": "OCR 引擎" },
+          "language": { "type": "string", "default": "ch", "enum": ["ch", "en", "ch_en", "japan", "korean"], "description": "识别语言" },
+          "confidence": { "type": "number", "default": 0.5, "minimum": 0, "maximum": 1, "description": "置信度阈值" },
+          "use_angle_cls": { "type": "boolean", "default": true, "description": "启用文本方向分类" }
+        }
+      }
+    },
+    {
+      "type": "vision.document_ocr",
+      "name": "文档 OCR",
+      "description": "识别结构化文档（表格、发票、身份证等）",
+      "inputs": [
+        { "id": "document", "name": "文档图像", "type": "image", "required": true }
+      ],
+      "outputs": [
+        { "id": "structured_data", "name": "结构化数据", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "doc_type": { "type": "string", "default": "general", "enum": ["general", "table", "invoice", "id_card", "business_license"], "description": "文档类型" },
+          "output_format": { "type": "string", "default": "json", "enum": ["json", "csv", "excel"], "description": "输出格式" }
+        }
+      }
+    }
+  ],
+  "supported_targets": ["python"]
+}

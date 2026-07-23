@@ -1,0 +1,50 @@
+{
+  "id": "download-manager",
+  "name": "文件下载管理器",
+  "version": "1.0.0",
+  "min_schema_version": "2.0.0",
+  "kind": "node",
+  "description": "工作流中的文件下载节点，支持 HTTP/HTTPS、FTP 等协议下载",
+  "author": "AIStudio",
+  "nodes": [
+    {
+      "type": "system.download",
+      "name": "文件下载",
+      "description": "从指定 URL 下载文件",
+      "inputs": [
+        { "id": "url", "name": "下载地址", "type": "string", "required": true }
+      ],
+      "outputs": [
+        { "id": "file", "name": "下载文件", "type": "file" },
+        { "id": "progress", "name": "下载进度", "type": "json" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "output_dir": { "type": "string", "default": "./downloads", "description": "保存目录" },
+          "filename": { "type": "string", "description": "自定义文件名" },
+          "timeout": { "type": "integer", "default": 300, "minimum": 1, "description": "超时（秒）" },
+          "resume": { "type": "boolean", "default": true, "description": "支持断点续传" },
+          "max_retries": { "type": "integer", "default": 3, "minimum": 0, "maximum": 10 }
+        }
+      }
+    },
+    {
+      "type": "system.dataset_download",
+      "name": "数据集下载",
+      "description": "下载标准数据集（ImageNet, COCO, VOC 等）",
+      "inputs": [],
+      "outputs": [
+        { "id": "dataset", "name": "数据集路径", "type": "path" }
+      ],
+      "config_schema": {
+        "type": "object",
+        "properties": {
+          "dataset_name": { "type": "string", "enum": ["imagenet", "coco", "voc", "cifar10", "mnist", "cityscapes"], "description": "数据集名称" },
+          "split": { "type": "string", "default": "train", "enum": ["train", "val", "test"], "description": "数据集分割" }
+        }
+      }
+    }
+  ],
+  "supported_targets": ["python"]
+}
