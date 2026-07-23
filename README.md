@@ -1,6 +1,6 @@
-# AIStudio
+# EngStudio
 
-**AIStudio** is a visual AI engineering platform for designing, compiling, and executing AI pipelines. Build workflows visually, generate production-ready code, and run them locally or in the cloud.
+**EngStudio** is a visual AI engineering platform for designing, compiling, and executing AI pipelines. Build workflows visually, generate production-ready code, and run them locally or in the cloud.
 
 ## Architecture
 
@@ -99,7 +99,7 @@ See [docker-compose.yml](docker-compose.yml) for service configuration.
 ## Project Structure
 
 ```
-AIstudio/
+Engstudio/
 ├── apps/
 │   ├── backend/          # Go backend server (cmd + internal packages)
 │   ├── desktop/          # Tauri desktop app (Vue3 + TypeScript)
